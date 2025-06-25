@@ -71,7 +71,7 @@
               icon="pi pi-sign-in"
               [loading]="isLoading"
               [disabled]="isLoading"
-              styleClass="w-full transition-all duration-200 hover:scale-105"
+              styleClass="w-full transition-all duration-200 hover:scale-105 mt-8 mb-3"
               size="large"
             ></p-button>
           </form>
@@ -79,9 +79,11 @@
       </ng-template>
     </p-card>
 
-    <p-card class="mt-6 shadow-lg border-0 rounded-xl transition-all duration-300 hover:shadow-xl">
+    <div class="my-10"></div>
+
+    <p-card class="shadow-lg border-0 rounded-xl transition-all duration-300 hover:shadow-xl mt-0">
       <ng-template pTemplate="header">
-        <div class="bg-gray-50 p-4 border-b">
+        <div class="bg-gray-50 p-4 border-b ">
           <div class="flex items-center space-x-2">
             <i class="pi pi-info-circle text-blue-500"></i>
             <h3 class="text-sm font-semibold text-gray-700">Demo Credentials</h3>
