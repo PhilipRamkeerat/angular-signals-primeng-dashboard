@@ -2,7 +2,6 @@ import { Component, Input, Output, EventEmitter, signal, computed, inject } from
 import { CommonModule } from '@angular/common';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
-import { CheckboxModule } from 'primeng/checkbox';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from 'primeng/dragdrop';
 import { ThemeService } from '../../services/theme.service';
@@ -16,7 +15,7 @@ interface Task {
 @Component({
   selector: 'app-task-list-widget',
   standalone: true,
-  imports: [CommonModule, CardModule, ButtonModule, CheckboxModule, FormsModule, DragDropModule],
+  imports: [CommonModule, CardModule, ButtonModule, FormsModule, DragDropModule],
   template: `
     <p-card class="h-full">
       <ng-template pTemplate="header">
@@ -69,13 +68,12 @@ interface Task {
                 'hover:bg-gray-700': themeService.isDarkMode()
               }"
             >
-              <div class="flex-shrink-0 task-checkbox">
-                <p-checkbox 
-                  [ngModel]="task.completed" 
-                  [binary]="true"
-                  (onChange)="toggleTask(task.id)"
-                ></p-checkbox>
-              </div>
+              <input
+                type="checkbox"
+                class="h-4 w-4 flex-shrink-0 cursor-pointer accent-purple-600 dark:accent-purple-400"
+                [checked]="task.completed"
+                (change)="toggleTask(task.id)"
+              />
               <span 
                 class="text-sm transition-all duration-200"
                 [ngClass]="{
@@ -112,96 +110,7 @@ interface Task {
         </div>
       </ng-template>
     </p-card>
-  `,
-  styles: [`
-    /* Enhanced checkbox styling for better visibility in both themes */
-    .task-checkbox :ng-deep .p-checkbox {
-      position: relative;
-    }
-    
-    .task-checkbox :ng-deep .p-checkbox .p-checkbox-box {
-      border-width: 2px !important;
-      border-radius: 4px !important;
-      transition: all 0.2s ease !important;
-    }
-    
-    /* Light mode checkbox styling */
-    :host-context(.light) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box {
-      background-color: #ffffff !important;
-      border-color: #d1d5db !important;
-    }
-    
-    :host-context(.light) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box:hover {
-      border-color: #9333ea !important;
-      box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.1) !important;
-    }
-    
-    :host-context(.light) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box.p-highlight {
-      background-color: #9333ea !important;
-      border-color: #9333ea !important;
-    }
-    
-    :host-context(.light) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon {
-      color: #ffffff !important;
-    }
-    
-    /* Dark mode checkbox styling */
-    :host-context(.dark) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box {
-      background-color: #374151 !important;
-      border-color: #6b7280 !important;
-    }
-    
-    :host-context(.dark) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box:hover {
-      border-color: #a855f7 !important;
-      box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2) !important;
-    }
-    
-    :host-context(.dark) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box.p-highlight {
-      background-color: #a855f7 !important;
-      border-color: #a855f7 !important;
-    }
-    
-    :host-context(.dark) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon {
-      color: #ffffff !important;
-    }
-    
-    /* Scrollbar styling for better theme integration */
-    :host-context(.light) .overflow-y-auto::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    :host-context(.light) .overflow-y-auto::-webkit-scrollbar-track {
-      background: #f3f4f6;
-      border-radius: 3px;
-    }
-    
-    :host-context(.light) .overflow-y-auto::-webkit-scrollbar-thumb {
-      background: #d1d5db;
-      border-radius: 3px;
-    }
-    
-    :host-context(.light) .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-      background: #9ca3af;
-    }
-    
-    :host-context(.dark) .overflow-y-auto::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    :host-context(.dark) .overflow-y-auto::-webkit-scrollbar-track {
-      background: #374151;
-      border-radius: 3px;
-    }
-    
-    :host-context(.dark) .overflow-y-auto::-webkit-scrollbar-thumb {
-      background: #6b7280;
-      border-radius: 3px;
-    }
-    
-    :host-context(.dark) .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-      background: #9ca3af;
-    }
-  `]
+  `
 })
 export class TaskListWidgetComponent {
   @Input() position?: { x: number; y: number };
