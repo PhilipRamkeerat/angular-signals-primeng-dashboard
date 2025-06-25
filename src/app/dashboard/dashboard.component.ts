@@ -5,14 +5,24 @@ import { Router } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { AvatarModule } from 'primeng/avatar';
-import { ChipModule } from 'primeng/chip';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { MenubarModule } from 'primeng/menubar';
 import { TooltipModule } from 'primeng/tooltip';
-import { MenuItem } from 'primeng/api';
+import { DragDropModule } from 'primeng/dragdrop';
 
 import { AuthService, User } from '../services/auth.service';
+import { WeatherWidgetComponent } from '../widgets/weather-widget/weather-widget.component';
+import { ChartWidgetComponent } from '../widgets/chart-widget/chart-widget.component';
+import { TaskListWidgetComponent } from '../widgets/task-list-widget/task-list-widget.component';
+import { QuickStatsWidgetComponent } from '../widgets/quick-stats-widget/quick-stats-widget.component';
+
+interface Widget {
+  id: string;
+  type: 'weather' | 'chart' | 'tasks' | 'stats';
+  title: string;
+  position: { row: number; col: number };
+  size: { width: number; height: number };
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -22,10 +32,13 @@ import { AuthService, User } from '../services/auth.service';
     CardModule,
     ButtonModule,
     AvatarModule,
-    ChipModule,
     ToastModule,
-    MenubarModule,
-    TooltipModule
+    TooltipModule,
+    DragDropModule,
+    WeatherWidgetComponent,
+    ChartWidgetComponent,
+    TaskListWidgetComponent,
+    QuickStatsWidgetComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
@@ -33,8 +46,10 @@ import { AuthService, User } from '../services/auth.service';
 })
 export class DashboardComponent implements OnInit {
   currentUser: User | null = null;
-  menuItems: MenuItem[] = [];
-
+  widgets: Widget[] = [];
+  draggedWidget: Widget | null = null;
+  dragOverIndex: number = -1;
+  
   constructor(
     private authService: AuthService,
     private router: Router,
@@ -43,7 +58,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCurrentUser();
-    this.initializeMenu();
+    this.initializeWidgets();
   }
 
   private loadCurrentUser(): void {
@@ -52,27 +67,35 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  private initializeMenu(): void {
-    this.menuItems = [
+  private initializeWidgets(): void {
+    this.widgets = [
       {
-        label: 'Dashboard',
-        icon: 'pi pi-home',
-        routerLink: '/dashboard'
+        id: 'weather-1',
+        type: 'weather',
+        title: 'Weather',
+        position: { row: 0, col: 0 },
+        size: { width: 1, height: 1 }
       },
       {
-        label: 'Profile',
-        icon: 'pi pi-user',
-        command: () => this.showProfileInfo()
+        id: 'chart-1',
+        type: 'chart',
+        title: 'Analytics',
+        position: { row: 0, col: 1 },
+        size: { width: 1, height: 1 }
       },
       {
-        label: 'Settings',
-        icon: 'pi pi-cog',
-        command: () => this.showSettingsInfo()
+        id: 'tasks-1',
+        type: 'tasks',
+        title: 'Tasks',
+        position: { row: 1, col: 0 },
+        size: { width: 1, height: 1 }
       },
       {
-        label: 'Logout',
-        icon: 'pi pi-sign-out',
-        command: () => this.logout()
+        id: 'stats-1',
+        type: 'stats',
+        title: 'Quick Stats',
+        position: { row: 1, col: 1 },
+        size: { width: 1, height: 1 }
       }
     ];
   }
@@ -90,40 +113,60 @@ export class DashboardComponent implements OnInit {
     }, 1000);
   }
 
-  showProfileInfo(): void {
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Profile',
-      detail: `Username: ${this.currentUser?.username}, Role: ${this.currentUser?.role}`
-    });
-  }
-
-  showSettingsInfo(): void {
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Settings',
-      detail: 'Settings panel would open here in a real application.'
-    });
-  }
-
   getInitials(name: string): string {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
 
-  getRoleColor(role: string): string {
-    switch (role.toLowerCase()) {
-      case 'administrator': return 'bg-red-500';
-      case 'user': return 'bg-blue-500';
-      case 'demo user': return 'bg-green-500';
-      default: return 'bg-gray-500';
+  onDragStart(widget: Widget): void {
+    this.draggedWidget = widget;
+  }
+
+  onDragEnd(): void {
+    this.draggedWidget = null;
+    this.dragOverIndex = -1;
+  }
+
+  onDrop(targetIndex: number): void {
+    if (this.draggedWidget) {
+      const draggedIndex = this.widgets.findIndex(w => w.id === this.draggedWidget!.id);
+      
+      if (draggedIndex !== -1 && draggedIndex !== targetIndex) {
+        // Swap widgets positions
+        const targetWidget = this.widgets[targetIndex];
+        const draggedWidgetPos = { ...this.draggedWidget.position };
+        
+        this.draggedWidget.position = { ...targetWidget.position };
+        targetWidget.position = { ...draggedWidgetPos };
+        
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Widget Moved',
+          detail: `${this.draggedWidget.title} widget has been repositioned.`
+        });
+      }
     }
+    
+    this.onDragEnd();
   }
 
-  getCurrentDate(): string {
-    return new Date().toLocaleDateString();
+  onDragEnter(index: number): void {
+    this.dragOverIndex = index;
   }
 
-  getCurrentDateTime(): string {
-    return new Date().toLocaleString();
+  onDragLeave(): void {
+    this.dragOverIndex = -1;
+  }
+
+  resetLayout(): void {
+    this.initializeWidgets();
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Layout Reset',
+      detail: 'Widget layout has been reset to default.'
+    });
+  }
+
+  getWidgetByPosition(row: number, col: number): Widget | undefined {
+    return this.widgets.find(w => w.position.row === row && w.position.col === col);
   }
 } 
