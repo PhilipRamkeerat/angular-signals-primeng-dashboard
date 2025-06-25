@@ -1,10 +1,11 @@
-import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from 'primeng/dragdrop';
+import { ThemeService } from '../../services/theme.service';
 
 interface Task {
   id: number;
@@ -40,8 +41,18 @@ interface Task {
       <ng-template pTemplate="content">
         <div class="space-y-3">
           <div class="flex justify-between items-center mb-4">
-            <span class="text-sm text-gray-600">{{ completedTasksCount() }}/{{ tasks().length }} completed</span>
-            <div class="w-full bg-gray-200 rounded-full h-2 ml-3">
+            <span class="text-sm" 
+                  [ngClass]="{
+                    'text-gray-600': themeService.isLightMode(),
+                    'text-gray-300': themeService.isDarkMode()
+                  }">
+              {{ completedTasksCount() }}/{{ tasks().length }} completed
+            </span>
+            <div class="w-full ml-3 rounded-full h-2"
+                 [ngClass]="{
+                   'bg-gray-200': themeService.isLightMode(),
+                   'bg-gray-600': themeService.isDarkMode()
+                 }">
               <div 
                 class="bg-purple-600 h-2 rounded-full transition-all duration-300" 
                 [style.width.%]="completionPercentage()"
@@ -52,43 +63,151 @@ interface Task {
           <div class="space-y-2 max-h-40 overflow-y-auto">
             <div 
               *ngFor="let task of tasks(); trackBy: trackByTask" 
-              class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+              class="flex items-center gap-3 p-2 rounded-lg transition-colors"
+              [ngClass]="{
+                'hover:bg-gray-50': themeService.isLightMode(),
+                'hover:bg-gray-700': themeService.isDarkMode()
+              }"
             >
-              <p-checkbox 
-                [ngModel]="task.completed" 
-                [binary]="true"
-                (onChange)="toggleTask(task.id)"
-                class="flex-shrink-0"
-              ></p-checkbox>
+              <div class="flex-shrink-0 task-checkbox">
+                <p-checkbox 
+                  [ngModel]="task.completed" 
+                  [binary]="true"
+                  (onChange)="toggleTask(task.id)"
+                ></p-checkbox>
+              </div>
               <span 
                 class="text-sm transition-all duration-200"
-                [class.line-through]="task.completed"
-                [class.text-gray-500]="task.completed"
-                [class.text-gray-800]="!task.completed"
+                [ngClass]="{
+                  'line-through': task.completed,
+                  'text-gray-500': task.completed && themeService.isLightMode(),
+                  'text-gray-400': task.completed && themeService.isDarkMode(),
+                  'text-gray-800': !task.completed && themeService.isLightMode(),
+                  'text-gray-100': !task.completed && themeService.isDarkMode()
+                }"
               >
                 {{ task.name }}
               </span>
             </div>
           </div>
           
-          <div class="pt-3 border-t border-gray-200">
+          <div class="pt-3 border-t"
+               [ngClass]="{
+                 'border-gray-200': themeService.isLightMode(),
+                 'border-gray-600': themeService.isDarkMode()
+               }">
             <button 
               pButton 
               pRipple 
               label="Add Task" 
               icon="pi pi-plus" 
-              class="p-button-text p-button-sm w-full justify-center text-purple-600 hover:bg-purple-50"
+              class="p-button-text p-button-sm w-full justify-center"
+              [ngClass]="{
+                'text-purple-600 hover:bg-purple-50': themeService.isLightMode(),
+                'text-purple-400 hover:bg-purple-900/20': themeService.isDarkMode()
+              }"
               (click)="addSampleTask()"
             ></button>
           </div>
         </div>
       </ng-template>
     </p-card>
-  `
+  `,
+  styles: [`
+    /* Enhanced checkbox styling for better visibility in both themes */
+    .task-checkbox :ng-deep .p-checkbox {
+      position: relative;
+    }
+    
+    .task-checkbox :ng-deep .p-checkbox .p-checkbox-box {
+      border-width: 2px !important;
+      border-radius: 4px !important;
+      transition: all 0.2s ease !important;
+    }
+    
+    /* Light mode checkbox styling */
+    :host-context(.light) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box {
+      background-color: #ffffff !important;
+      border-color: #d1d5db !important;
+    }
+    
+    :host-context(.light) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box:hover {
+      border-color: #9333ea !important;
+      box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.1) !important;
+    }
+    
+    :host-context(.light) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box.p-highlight {
+      background-color: #9333ea !important;
+      border-color: #9333ea !important;
+    }
+    
+    :host-context(.light) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon {
+      color: #ffffff !important;
+    }
+    
+    /* Dark mode checkbox styling */
+    :host-context(.dark) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box {
+      background-color: #374151 !important;
+      border-color: #6b7280 !important;
+    }
+    
+    :host-context(.dark) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box:hover {
+      border-color: #a855f7 !important;
+      box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2) !important;
+    }
+    
+    :host-context(.dark) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box.p-highlight {
+      background-color: #a855f7 !important;
+      border-color: #a855f7 !important;
+    }
+    
+    :host-context(.dark) .task-checkbox :ng-deep .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon {
+      color: #ffffff !important;
+    }
+    
+    /* Scrollbar styling for better theme integration */
+    :host-context(.light) .overflow-y-auto::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    :host-context(.light) .overflow-y-auto::-webkit-scrollbar-track {
+      background: #f3f4f6;
+      border-radius: 3px;
+    }
+    
+    :host-context(.light) .overflow-y-auto::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+    
+    :host-context(.light) .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
+    }
+    
+    :host-context(.dark) .overflow-y-auto::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    :host-context(.dark) .overflow-y-auto::-webkit-scrollbar-track {
+      background: #374151;
+      border-radius: 3px;
+    }
+    
+    :host-context(.dark) .overflow-y-auto::-webkit-scrollbar-thumb {
+      background: #6b7280;
+      border-radius: 3px;
+    }
+    
+    :host-context(.dark) .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
+    }
+  `]
 })
 export class TaskListWidgetComponent {
   @Input() position?: { x: number; y: number };
   @Output() dragStart = new EventEmitter<void>();
+  
+  public readonly themeService = inject(ThemeService);
 
   // Signal-based state management
   private readonly _tasks = signal<Task[]>([
