@@ -19,7 +19,7 @@ export interface LoginCredentials {
 })
 export class AuthService {
   private readonly HARDCODED_USERS = [
-    { id: 1, username: 'admin', password: 'admin123', email: 'admin@example.com', role: 'Administrator' }
+    { id: 1, username: 'admin', password: 'Test!2025$Unique', email: 'admin@example.com', role: 'Administrator' }
   ];
 
   // Signals instead of BehaviorSubjects

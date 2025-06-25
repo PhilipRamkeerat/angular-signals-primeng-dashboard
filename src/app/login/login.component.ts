@@ -61,7 +61,7 @@ export class LoginComponent {
   private createLoginForm(): FormGroup {
     return this.fb.group({
       username: ['admin', [Validators.required, Validators.minLength(3)]],
-      password: ['admin123', [Validators.required, Validators.minLength(6)]]
+      password: ['Test!2025$Unique', [Validators.required, Validators.minLength(6)]]
     });
   }
 
@@ -118,12 +118,12 @@ export class LoginComponent {
     this.messageService.add({
       severity: 'error',
       summary: 'Login Failed',
-      detail: 'Use demo credential: Login: admin | Password: admin123'
+      detail: 'Use demo credential: Login: admin | Password: Test!2025$Unique'
     });
   }
 
   onDemoLogin(username: string): void {
-    const demoPassword = 'admin123';
+    const demoPassword = 'Test!2025$Unique';
     
     this.loginForm.patchValue({
       username: username,
