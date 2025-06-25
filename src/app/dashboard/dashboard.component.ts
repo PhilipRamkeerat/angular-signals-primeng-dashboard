@@ -115,6 +115,8 @@ export class DashboardComponent {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
 
+
+
   onDragStart(widget: Widget): void {
     this._draggedWidget.set(widget);
   }

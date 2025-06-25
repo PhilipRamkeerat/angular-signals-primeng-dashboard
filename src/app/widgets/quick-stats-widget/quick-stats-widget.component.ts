@@ -23,7 +23,7 @@ import { ButtonModule } from 'primeng/button';
               icon="pi pi-arrows-alt" 
               pTooltip="Drag to move"
               [style.cursor]="'grab'"
-              (mousedown)="onDragStart()"
+              (click)="onDragStart()"
             ></button>
           </div>
         </div>

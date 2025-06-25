@@ -34,7 +34,7 @@ interface WeatherData {
               icon="pi pi-arrows-alt" 
               pTooltip="Drag to move"
               [style.cursor]="'grab'"
-              (mousedown)="onDragStart()"
+              (click)="onDragStart()"
             ></button>
             <button 
               pButton 

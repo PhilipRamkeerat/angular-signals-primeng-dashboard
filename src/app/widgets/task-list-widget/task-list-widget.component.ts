@@ -4,6 +4,7 @@ import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { FormsModule } from '@angular/forms';
+import { DragDropModule } from 'primeng/dragdrop';
 
 interface Task {
   id: number;
@@ -14,7 +15,7 @@ interface Task {
 @Component({
   selector: 'app-task-list-widget',
   standalone: true,
-  imports: [CommonModule, CardModule, ButtonModule, CheckboxModule, FormsModule],
+  imports: [CommonModule, CardModule, ButtonModule, CheckboxModule, FormsModule, DragDropModule],
   template: `
     <p-card class="h-full">
       <ng-template pTemplate="header">
@@ -31,7 +32,6 @@ interface Task {
               icon="pi pi-arrows-alt" 
               pTooltip="Drag to move"
               [style.cursor]="'grab'"
-              (mousedown)="onDragStart()"
             ></button>
           </div>
         </div>
