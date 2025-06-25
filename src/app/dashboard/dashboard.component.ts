@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { Subject, takeUntil, combineLatest, debounceTime } from 'rxjs';
 
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -11,18 +12,11 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DragDropModule } from 'primeng/dragdrop';
 
 import { AuthService, User } from '../services/auth.service';
+import { WidgetStorageService, Widget } from '../services/widget-storage.service';
 import { WeatherWidgetComponent } from '../widgets/weather-widget/weather-widget.component';
 import { ChartWidgetComponent } from '../widgets/chart-widget/chart-widget.component';
 import { TaskListWidgetComponent } from '../widgets/task-list-widget/task-list-widget.component';
 import { QuickStatsWidgetComponent } from '../widgets/quick-stats-widget/quick-stats-widget.component';
-
-interface Widget {
-  id: string;
-  type: 'weather' | 'chart' | 'tasks' | 'stats';
-  title: string;
-  position: { row: number; col: number };
-  size: { width: number; height: number };
-}
 
 @Component({
   selector: 'app-dashboard',
@@ -44,60 +38,92 @@ interface Widget {
   styleUrl: './dashboard.component.css',
   providers: [MessageService]
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   currentUser: User | null = null;
   widgets: Widget[] = [];
   draggedWidget: Widget | null = null;
   dragOverIndex: number = -1;
   
+  private readonly destroy$ = new Subject<void>();
+  private pendingSave$ = new Subject<void>();
+  
   constructor(
     private authService: AuthService,
     private router: Router,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private widgetStorageService: WidgetStorageService
   ) {}
 
   ngOnInit(): void {
     this.loadCurrentUser();
-    this.initializeWidgets();
+    this.setupAutoSave();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private loadCurrentUser(): void {
-    this.authService.currentUser$.subscribe(user => {
-      this.currentUser = user;
-    });
+    this.authService.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(user => {
+        this.currentUser = user;
+        if (user) {
+          const userId = String(user.id || user.username);
+          this.loadWidgetLayout(userId);
+        }
+      });
   }
 
-  private initializeWidgets(): void {
-    this.widgets = [
-      {
-        id: 'weather-1',
-        type: 'weather',
-        title: 'Weather',
-        position: { row: 0, col: 0 },
-        size: { width: 1, height: 1 }
-      },
-      {
-        id: 'chart-1',
-        type: 'chart',
-        title: 'Analytics',
-        position: { row: 0, col: 1 },
-        size: { width: 1, height: 1 }
-      },
-      {
-        id: 'tasks-1',
-        type: 'tasks',
-        title: 'Tasks',
-        position: { row: 1, col: 0 },
-        size: { width: 1, height: 1 }
-      },
-      {
-        id: 'stats-1',
-        type: 'stats',
-        title: 'Quick Stats',
-        position: { row: 1, col: 1 },
-        size: { width: 1, height: 1 }
-      }
-    ];
+  private loadWidgetLayout(userId: string): void {
+    const savedLayout = this.widgetStorageService.getWidgetLayout(userId);
+    this.widgets = [...savedLayout];
+    
+    const lastUpdated = this.widgetStorageService.getLastUpdated(userId);
+    if (lastUpdated) {
+      const updateTime = new Date(lastUpdated).toLocaleString();
+      console.log(`Widget layout loaded from ${updateTime}`);
+      
+      // Show notification for loaded custom layout
+      setTimeout(() => {
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Layout Loaded',
+          detail: `Your custom widget layout from ${updateTime} has been restored.`,
+          life: 3000
+        });
+      }, 500); // Small delay to avoid showing too early
+    }
+  }
+
+  private setupAutoSave(): void {
+    // Auto-save widget positions with debouncing to avoid excessive saves
+    this.pendingSave$
+      .pipe(
+        debounceTime(1000), // Wait 1 second after last change
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        this.saveCurrentLayout();
+      });
+  }
+
+  private saveCurrentLayout(): void {
+    if (!this.currentUser) {
+      return;
+    }
+
+    const userId = String(this.currentUser.id || this.currentUser.username);
+    const success = this.widgetStorageService.saveWidgetLayout(userId, this.widgets);
+    
+    if (success) {
+      console.log('Widget layout auto-saved');
+    }
+  }
+
+  private triggerAutoSave(): void {
+    this.pendingSave$.next();
   }
 
   logout(): void {
@@ -138,10 +164,13 @@ export class DashboardComponent implements OnInit {
         this.draggedWidget.position = { ...targetWidget.position };
         targetWidget.position = { ...draggedWidgetPos };
         
+        // Trigger auto-save after position change
+        this.triggerAutoSave();
+        
         this.messageService.add({
           severity: 'success',
           summary: 'Widget Moved',
-          detail: `${this.draggedWidget.title} widget has been repositioned.`
+          detail: `${this.draggedWidget.title} widget has been repositioned and saved.`
         });
       }
     }
@@ -158,7 +187,13 @@ export class DashboardComponent implements OnInit {
   }
 
   resetLayout(): void {
-    this.initializeWidgets();
+    if (!this.currentUser) {
+      return;
+    }
+
+    const userId = String(this.currentUser.id || this.currentUser.username);
+    this.widgets = this.widgetStorageService.resetWidgetLayout(userId);
+    
     this.messageService.add({
       severity: 'info',
       summary: 'Layout Reset',
@@ -168,5 +203,36 @@ export class DashboardComponent implements OnInit {
 
   getWidgetByPosition(row: number, col: number): Widget | undefined {
     return this.widgets.find(w => w.position.row === row && w.position.col === col);
+  }
+
+  /**
+   * Get storage information for debugging or user info
+   */
+  getStorageInfo(): { used: number; available: boolean } {
+    return this.widgetStorageService.getStorageInfo();
+  }
+
+  /**
+   * Manual save method (can be triggered by a button if needed)
+   */
+  saveLayout(): void {
+    this.saveCurrentLayout();
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Layout Saved',
+      detail: 'Your widget layout has been saved successfully.'
+    });
+  }
+
+  /**
+   * Clear all saved layouts (for debugging or user data cleanup)
+   */
+  clearAllSavedLayouts(): void {
+    this.widgetStorageService.clearAllLayouts();
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Layouts Cleared',
+      detail: 'All saved widget layouts have been cleared.'
+    });
   }
 } 
