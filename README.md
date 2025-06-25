@@ -1,125 +1,104 @@
-# Angular 19 Dashboard Project - Zone-Free with Signals
+# Angular 19 Dashboard – Zoneless, Signals-Driven 🚀
 
-This project has been fully refactored to use Angular 19's latest features, including **zone-free architecture** and **signals** for reactive state management.
+A modern dashboard application built with Angular 19, PrimeNG, and Tailwind CSS. The app runs **completely zone-free** and leverages **Angular Signals** for state management, delivering exceptional performance with a minimal bundle size.
 
-## 🚀 Key Features
+## Requirements
 
-### Angular 19 Modern Features Used:
-- **Zone-free Change Detection**: Removed Zone.js dependency for better performance
-- **Signals**: All state management using Angular signals instead of RxJS observables
-- **Signal-based Forms**: Modern reactive form handling with signal integration
-- **Functional Guards**: Modern route guards using inject() function
-- **Effects**: Automatic side effects using Angular's effect() function
-- **Computed Signals**: Derived state with automatic updates
-- **Standalone Components**: All components are standalone with no NgModules
+- Node.js 20 (LTS) or higher
+- npm 10 (or pnpm / yarn)
+- Angular CLI 19.x
 
-### Components Refactored:
-- ✅ **LoginComponent**: Uses signals for form state and loading indicators
-- ✅ **DashboardComponent**: Signal-based widget management and user state
-- ✅ **AuthService**: Signal-based authentication state
-- ✅ **WidgetStorageService**: Signal-based widget data management
-- ✅ **WeatherWidget**: Enhanced with signal-based weather data and auto-refresh
-- ✅ **Auth Guards**: Modern functional guards with dependency injection
-
-## 🔧 Technical Implementation
-
-### Signal Usage Examples:
-
-```typescript
-// Service with signals
-export class AuthService {
-  private readonly _currentUser = signal<User | null>(null);
-  public readonly currentUser = this._currentUser.asReadonly();
-  public readonly isLoggedIn = computed(() => this._currentUser() !== null);
-
-  constructor() {
-    // Effect for automatic localStorage sync
-    effect(() => {
-      const user = this._currentUser();
-      if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-      } else {
-        localStorage.removeItem('currentUser');
-      }
-    }, { allowSignalWrites: true });
-  }
-}
-```
-
-```typescript
-// Component with signals
-export class LoginComponent {
-  private readonly authService = inject(AuthService);
-  public readonly isLoading = this.authService.isLoading;
-  
-  // Computed signals for form validation
-  public readonly isFormValid = computed(() => this.loginForm?.valid ?? false);
-}
-```
-
-### Zone-Free Configuration:
-```typescript
-// app.config.ts
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideExperimentalZonelessChangeDetection(), // Zone-free mode
-    provideRouter(routes),
-    // ... other providers
-  ]
-};
-```
-
-### Modern Functional Guards:
-```typescript
-// guards/auth.guard.ts
-export const authGuard = () => {
-  const authService = inject(AuthService);
-  const router = inject(Router);
-  
-  return authService.isLoggedIn() ? true : (router.navigate(['/login']), false);
-};
-```
-
-## 📦 Dependencies
-
-Zone.js has been **completely removed** from the project. The application now runs entirely zone-free for improved performance and smaller bundle size.
-
-## 🎯 Benefits of This Refactoring
-
-1. **Better Performance**: Zone-free architecture reduces overhead
-2. **Simpler State Management**: Signals provide cleaner, more predictable state
-3. **Better Developer Experience**: Computed signals and effects reduce boilerplate
-4. **Modern Patterns**: Using latest Angular 19 features and best practices
-5. **Smaller Bundle**: No Zone.js dependency reduces bundle size
-6. **Better Type Safety**: Signals provide better TypeScript integration
-
-## 🚀 Running the Project
+## Installation & Running
 
 ```bash
+# install dependencies
 npm install
-npm start
+
+# start a local dev server at http://localhost:4200
+npm start   # →  ng serve
 ```
 
-The application will run in zone-free mode with signal-based reactivity.
+### Additional scripts
 
-## 🔄 Widget Features
+```bash
+npm run build      # production build (ng build --configuration production)
+npm run test       # unit tests with Karma + Jasmine
+npm run watch      # incremental dev build
+```
 
-- **Drag & Drop**: Widgets can be repositioned using drag and drop
-- **Auto-Save**: Widget positions are automatically saved using signals and effects
-- **Real-time Updates**: Weather widget updates automatically every 5 minutes
-- **Signal-based Storage**: All widget data managed through signals
+## Key Features
 
-## 🛡️ Authentication
+1. **Zone-Free Change Detection** – Bootstrapped with `provideExperimentalZonelessChangeDetection()`; Zone.js has been removed from dependencies.
+2. **Signals-Based State** – `signal()`, `computed()`, and `effect()` drive the entire application state (widgets, authentication, theming, etc.).
+3. **PrimeNG + Tailwind UI** – Combines PrimeNG components with Tailwind CSS utility classes for rapid, theme-able styling.
+4. **Drag-and-Drop Dashboard** – Widgets (Weather, Chart, Tasks, Stats) can be repositioned via drag & drop; layouts are persisted per-user in `localStorage`.
+5. **Auto-Save & Versioned Layouts** – Widget positions automatically debounce-save; versioning guards against incompatible layouts.
+6. **Dark / Light Theme Toggle** – Instant theme switching powered by Signals and PrimeNG's dynamic theming API.
+7. **Weather Auto-Refresh** – Weather widget refreshes mock data every 5 minutes (and on-demand).
+8. **Authentication Demo** – Simple signal-based auth service with demo credentials (`admin / Test!2025$Unique`).
 
-- Signal-based authentication state
-- Functional route guards
-- Automatic localStorage synchronization through effects
-- Modern async/await patterns instead of observables
+## Drag-and-Drop&nbsp;+&nbsp;Layout Persistence
 
-## 📱 UI Components
+The dashboard grid is fully interactive—every widget can be picked up and moved to any of the four available slots. Under the hood, the **`WidgetStorageService`** handles persistence with the following flow:
 
-- **Login Page**: Signal-based form validation and loading states
-- **Dashboard**: Signal-based widget management and user interface
-- **Widgets**: Individual signal-based components with auto-refresh capabilities
+1. Each widget has a `(row, col)` position stored in a `signal<Widget[]>`.
+2. When a widget is dropped, the service **debounces** the update for 1&nbsp;second to avoid excessive writes.
+3. The entire layout is serialized to JSON and saved under the key **`dashboard_widget_layout`** in `localStorage`, together with a `userId`, `version`, and `lastUpdated` timestamp.
+4. On application start (or user login) the service:
+   - Reads the stored layout for the current user.
+   - Validates version compatibility and falls back to a default layout if necessary.
+   - Hydrates the widget `signal` so the UI instantly reflects the saved positions.
 
-This refactoring showcases the power of Angular 19's modern features while maintaining a clean, performant codebase.
+This means your custom layout survives page reloads, browser restarts, and even network-less scenarios—while remaining per-user and forward-compatible thanks to the version field.
+
+## Project Structure (relevant)
+
+```
+src/
+ ├─ app/
+ │  ├─ components/          # shared UI pieces (e.g. theme toggle)
+ │  ├─ dashboard/           # main dashboard view
+ │  ├─ login/               # login page
+ │  ├─ services/            # signal-based services (auth, theme, widgets)
+ │  └─ widgets/             # standalone widget components
+ ├─ main.ts                 # zone-free bootstrap
+ └─ app.config.ts           # global providers
+```
+
+## Technology Stack
+
+- **Angular 19.2** (standalone APIs, Signals, functional guards)
+- **PrimeNG 19** & **PrimeIcons 7** – component library
+- **Tailwind CSS 3** – utility-first styling
+- **RxJS 7** – kept only for legacy convenience (e.g. optional *loginRx*)
+- **TypeScript 5.7**
+
+## Deploying
+
+Run a production build and serve the contents of `dist/` with any static web server:
+
+```bash
+npm run build
+npx http-server dist/test-case --port 5000
+```
+
+## Screenshots
+
+> A quick visual tour of the application in both light and dark themes.
+
+| Login | Dashboard |
+|-------|-----------|
+| ![Login – light mode](./public/login.png) | ![Dashboard – light mode](./public/dashboard-light.png) |
+| ![Login – dark mode](./public/login-dark.png) | ![Dashboard – dark mode](./public/dashboard-dark.png) |
+
+---
+
+## Author
+
+**Philip Ramkeerat**  
+ [philipramkeerat.com.br](https://philipramkeerat.com.br/home)  
+ [philip_ramkeerat@hotmail.com](mailto:philip_ramkeerat@hotmail.com)
+
+---
+
+

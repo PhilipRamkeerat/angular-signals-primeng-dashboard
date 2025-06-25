@@ -1,6 +1,11 @@
 {
   "name": "test-case",
   "version": "0.0.0",
+  "author": {
+    "name": "Philip Ramkeerat",
+    "email": "philip_ramkeerat@hotmail.com",
+    "site": "https://philipramkeerat.com.br/home"
+  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
