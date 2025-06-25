@@ -1,17 +1,22 @@
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen transition-colors duration-300" 
+     [class]="themeService.isDarkMode() ? 'bg-gray-900' : 'bg-gray-50'">
   <p-toast></p-toast>
   
-  <div class="bg-white shadow-sm border-b backdrop-blur-sm bg-white/95">
+  <div class="shadow-sm border-b backdrop-blur-sm transition-colors duration-300"
+       [class]="themeService.isDarkMode() ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-gray-200'">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center py-4">
         <div class="flex items-center space-x-3">
           <div class="bg-blue-600 text-white rounded-lg p-2 transition-all duration-200 hover:scale-110">
             <i class="pi pi-chart-bar text-xl"></i>
           </div>
-          <h1 class="text-xl font-semibold text-gray-900">Dashboard</h1>
+          <h1 class="text-xl font-semibold transition-colors duration-300"
+              [class]="themeService.isDarkMode() ? 'text-white' : 'text-gray-900'">Dashboard</h1>
         </div>
         
         <div class="flex items-center space-x-4">
+          <app-theme-toggle></app-theme-toggle>
+          
           <p-button
             icon="pi pi-save"
             [text]="true"
@@ -35,8 +40,10 @@
           ></p-button>
           
           <div class="text-right hidden sm:block">
-            <p class="text-sm font-medium text-gray-900">{{ currentUser()?.username }}</p>
-            <p class="text-xs text-gray-500">{{ currentUser()?.email }}</p>
+            <p class="text-sm font-medium transition-colors duration-300"
+               [class]="themeService.isDarkMode() ? 'text-white' : 'text-gray-900'">{{ currentUser()?.username }}</p>
+            <p class="text-xs transition-colors duration-300"
+               [class]="themeService.isDarkMode() ? 'text-gray-300' : 'text-gray-500'">{{ currentUser()?.email }}</p>
           </div>
           <p-avatar 
             [label]="userInitials()" 
@@ -61,10 +68,12 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     
     <div class="mb-8">
-      <h2 class="text-3xl font-bold text-gray-900 mb-2">
+      <h2 class="text-3xl font-bold mb-2 transition-colors duration-300"
+          [class]="themeService.isDarkMode() ? 'text-white' : 'text-gray-900'">
         Welcome back, {{ currentUser()?.username }}! 👋
       </h2>
-      <p class="text-gray-600">
+      <p class="transition-colors duration-300"
+         [class]="themeService.isDarkMode() ? 'text-gray-300' : 'text-gray-600'">
         Drag and drop widgets to customize your dashboard layout. Your changes are automatically saved.
       </p>
     </div>
@@ -111,7 +120,8 @@
           ></app-quick-stats-widget>
         </div>
         <ng-template #emptySlot>
-          <div class="h-full flex items-center justify-center text-gray-400 empty-slot rounded-lg">
+          <div class="h-full flex items-center justify-center empty-slot rounded-lg transition-colors duration-300"
+               [class]="themeService.isDarkMode() ? 'text-gray-500 border-gray-600' : 'text-gray-400 border-gray-300'">
             <div class="text-center">
               <i class="pi pi-plus text-2xl mb-2"></i>
               <p>Drop widget here</p>
@@ -271,12 +281,16 @@
       </div>
     </div>
 
-    <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+    <div class="mt-8 p-4 rounded-lg border transition-colors duration-300"
+         [class]="themeService.isDarkMode() ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-200'">
       <div class="flex items-start">
-        <i class="pi pi-info-circle text-blue-500 mt-0.5 mr-3"></i>
+        <i class="mt-0.5 mr-3 transition-colors duration-300"
+           [class]="themeService.isDarkMode() ? 'pi pi-info-circle text-blue-400' : 'pi pi-info-circle text-blue-500'"></i>
         <div>
-          <h4 class="text-sm font-semibold text-blue-800 mb-1">How to use</h4>
-          <p class="text-sm text-blue-700">
+          <h4 class="text-sm font-semibold mb-1 transition-colors duration-300"
+              [class]="themeService.isDarkMode() ? 'text-blue-300' : 'text-blue-800'">How to use</h4>
+          <p class="text-sm transition-colors duration-300"
+             [class]="themeService.isDarkMode() ? 'text-blue-200' : 'text-blue-700'">
             Click and drag any widget to move it to a different position in the grid. 
             Your layout is automatically saved and will be restored when you return.
             Use the save button to manually save changes or the reset button to restore the default layout.

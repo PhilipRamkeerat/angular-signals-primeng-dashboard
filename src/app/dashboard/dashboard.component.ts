@@ -12,10 +12,12 @@ import { DragDropModule } from 'primeng/dragdrop';
 
 import { AuthService, User } from '../services/auth.service';
 import { WidgetStorageService, Widget } from '../services/widget-storage.service';
+import { ThemeService } from '../services/theme.service';
 import { WeatherWidgetComponent } from '../widgets/weather-widget/weather-widget.component';
 import { ChartWidgetComponent } from '../widgets/chart-widget/chart-widget.component';
 import { TaskListWidgetComponent } from '../widgets/task-list-widget/task-list-widget.component';
 import { QuickStatsWidgetComponent } from '../widgets/quick-stats-widget/quick-stats-widget.component';
+import { ThemeToggleComponent } from '../components/theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -31,7 +33,8 @@ import { QuickStatsWidgetComponent } from '../widgets/quick-stats-widget/quick-s
     WeatherWidgetComponent,
     ChartWidgetComponent,
     TaskListWidgetComponent,
-    QuickStatsWidgetComponent
+    QuickStatsWidgetComponent,
+    ThemeToggleComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
@@ -43,6 +46,7 @@ export class DashboardComponent {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   private readonly widgetStorageService = inject(WidgetStorageService);
+  public readonly themeService = inject(ThemeService);
 
   // Signals for component state
   private readonly _draggedWidget = signal<Widget | null>(null);

@@ -49,6 +49,17 @@
   background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
 }
 
+/* Dark mode styles */
+:host-context(.dark) .empty-slot {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border: 2px dashed #4b5563;
+}
+
+:host-context(.dark) .empty-slot:hover {
+  border-color: #6b7280;
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+}
+
 .drop-zone.drag-over .empty-slot {
   border-color: #3b82f6;
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
@@ -99,4 +110,17 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* Dark mode scrollbar */
+:host-context(.dark) ::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+:host-context(.dark) ::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+:host-context(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }

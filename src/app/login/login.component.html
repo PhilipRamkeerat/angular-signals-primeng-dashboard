@@ -1,5 +1,11 @@
-<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+<div class="min-h-screen flex items-center justify-center p-4 transition-colors duration-300"
+     [class]="themeService.isDarkMode() ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'">
   <p-toast></p-toast>
+  
+  <!-- Theme Toggle -->
+  <div class="absolute top-4 right-4">
+    <app-theme-toggle></app-theme-toggle>
+  </div>
   
   <div class="w-full max-w-md">
     <p-card class="shadow-2xl border-0 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-3xl">
@@ -17,7 +23,8 @@
         <div class="p-6">
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
             <div class="space-y-2">
-              <label for="username" class="block text-sm font-medium text-gray-700">
+              <label for="username" class="block text-sm font-medium transition-colors duration-300"
+                     [class]="themeService.isDarkMode() ? 'text-gray-200' : 'text-gray-700'">
                 Username <span class="text-red-500">*</span>
               </label>
               <span class="p-input-icon-left w-full">
@@ -41,7 +48,8 @@
             </div>
 
             <div class="space-y-2">
-              <label for="password" class="block text-sm font-medium text-gray-700">
+              <label for="password" class="block text-sm font-medium transition-colors duration-300"
+                     [class]="themeService.isDarkMode() ? 'text-gray-200' : 'text-gray-700'">
                 Password <span class="text-red-500">*</span>
               </label>
               <span class="p-input-icon-left w-full">
@@ -83,33 +91,41 @@
 
     <p-card class="shadow-lg border-0 rounded-xl transition-all duration-300 hover:shadow-xl mt-0">
       <ng-template pTemplate="header">
-        <div class="bg-gray-50 p-4 border-b ">
+        <div class="p-4 border-b transition-colors duration-300"
+             [class]="themeService.isDarkMode() ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-200'">
           <div class="flex items-center space-x-2">
             <i class="pi pi-info-circle text-blue-500"></i>
-            <h3 class="text-sm font-semibold text-gray-700">Demo Credentials</h3>
+            <h3 class="text-sm font-semibold transition-colors duration-300"
+                [class]="themeService.isDarkMode() ? 'text-gray-200' : 'text-gray-700'">Demo Credentials</h3>
           </div>
         </div>
       </ng-template>
       
       <ng-template pTemplate="content">
         <div class="p-4">
-          <p class="text-xs text-gray-600 mb-4">
+          <p class="text-xs mb-4 transition-colors duration-300"
+             [class]="themeService.isDarkMode() ? 'text-gray-300' : 'text-gray-600'">
             Click on any credential below to auto-fill the login form:
           </p>
           <div class="grid gap-2">
             <div 
               *ngFor="let cred of demoCredentials()" 
-              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
+              class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
+              [class]="themeService.isDarkMode() ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'"
               (click)="onDemoLogin(cred.username)"
             >
               <div class="flex items-center space-x-3">
-                <i class="pi pi-user text-gray-500"></i>
+                <i class="pi pi-user transition-colors duration-300"
+                   [class]="themeService.isDarkMode() ? 'text-gray-400' : 'text-gray-500'"></i>
                 <div>
-                  <div class="font-medium text-sm text-gray-800">{{ cred.username }}</div>
-                  <div class="text-xs text-gray-500">{{ cred.role }}</div>
+                  <div class="font-medium text-sm transition-colors duration-300"
+                       [class]="themeService.isDarkMode() ? 'text-gray-100' : 'text-gray-800'">{{ cred.username }}</div>
+                  <div class="text-xs transition-colors duration-300"
+                       [class]="themeService.isDarkMode() ? 'text-gray-400' : 'text-gray-500'">{{ cred.role }}</div>
                 </div>
               </div>
-              <i class="pi pi-angle-right text-gray-400 transition-transform duration-200 group-hover:translate-x-1"></i>
+              <i class="pi pi-angle-right transition-all duration-200 group-hover:translate-x-1"
+                 [class]="themeService.isDarkMode() ? 'text-gray-500' : 'text-gray-400'"></i>
             </div>
           </div>
         </div>
@@ -120,12 +136,14 @@
       *ngIf="isLoading()" 
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
     >
-      <div class="bg-white p-6 rounded-lg shadow-xl flex items-center space-x-4 animate-pulse">
+      <div class="p-6 rounded-lg shadow-xl flex items-center space-x-4 animate-pulse transition-colors duration-300"
+           [class]="themeService.isDarkMode() ? 'bg-gray-800' : 'bg-white'">
         <p-progressSpinner 
           [style]="{'width': '30px', 'height': '30px'}" 
           styleClass="custom-spinner"
         ></p-progressSpinner>
-        <span class="text-gray-700 font-medium">Signing you in...</span>
+        <span class="font-medium transition-colors duration-300"
+              [class]="themeService.isDarkMode() ? 'text-gray-200' : 'text-gray-700'">Signing you in...</span>
       </div>
     </div>
   </div>

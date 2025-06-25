@@ -1,7 +1,8 @@
-import { Component, Input, Output, EventEmitter, signal, computed, effect } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
+import { ThemeService } from '../../services/theme.service';
 
 interface WeatherData {
   temperature: number;
@@ -55,27 +56,36 @@ interface WeatherData {
             <div class="text-4xl font-bold text-blue-600 mb-2">
               {{ weatherData().temperature }}°C
             </div>
-            <div class="text-lg text-gray-700 mb-1">{{ weatherData().condition }}</div>
-            <div class="text-sm text-gray-500">{{ weatherData().location }}</div>
+            <div class="text-lg mb-1 transition-colors duration-300"
+                 [class]="themeService.isDarkMode() ? 'text-gray-200' : 'text-gray-700'">{{ weatherData().condition }}</div>
+            <div class="text-sm transition-colors duration-300"
+                 [class]="themeService.isDarkMode() ? 'text-gray-400' : 'text-gray-500'">{{ weatherData().location }}</div>
           </div>
           
-          <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+          <div class="grid grid-cols-2 gap-4 pt-4 border-t transition-colors duration-300"
+               [class]="themeService.isDarkMode() ? 'border-gray-600' : 'border-gray-200'">
             <div class="text-center">
-              <div class="text-xs text-gray-500 uppercase tracking-wide">Humidity</div>
-              <div class="text-lg font-semibold text-gray-800">{{ weatherData().humidity }}%</div>
+              <div class="text-xs uppercase tracking-wide transition-colors duration-300"
+                   [class]="themeService.isDarkMode() ? 'text-gray-400' : 'text-gray-500'">Humidity</div>
+              <div class="text-lg font-semibold transition-colors duration-300"
+                   [class]="themeService.isDarkMode() ? 'text-gray-100' : 'text-gray-800'">{{ weatherData().humidity }}%</div>
             </div>
             <div class="text-center">
-              <div class="text-xs text-gray-500 uppercase tracking-wide">Wind</div>
-              <div class="text-lg font-semibold text-gray-800">{{ weatherData().windSpeed }} km/h</div>
+              <div class="text-xs uppercase tracking-wide transition-colors duration-300"
+                   [class]="themeService.isDarkMode() ? 'text-gray-400' : 'text-gray-500'">Wind</div>
+              <div class="text-lg font-semibold transition-colors duration-300"
+                   [class]="themeService.isDarkMode() ? 'text-gray-100' : 'text-gray-800'">{{ weatherData().windSpeed }} km/h</div>
             </div>
           </div>
           
-          <div class="flex justify-between text-sm text-gray-600 pt-2">
+          <div class="flex justify-between text-sm pt-2 transition-colors duration-300"
+               [class]="themeService.isDarkMode() ? 'text-gray-300' : 'text-gray-600'">
             <span>High: {{ weatherData().highTemp }}°C</span>
             <span>Low: {{ weatherData().lowTemp }}°C</span>
           </div>
           
-          <div class="text-xs text-gray-400 text-center pt-2">
+          <div class="text-xs text-center pt-2 transition-colors duration-300"
+               [class]="themeService.isDarkMode() ? 'text-gray-500' : 'text-gray-400'">
             Last updated: {{ lastUpdated() }}
           </div>
         </div>
@@ -86,6 +96,8 @@ interface WeatherData {
 export class WeatherWidgetComponent {
   @Input() position?: { x: number; y: number };
   @Output() dragStart = new EventEmitter<void>();
+  
+  public readonly themeService = inject(ThemeService);
 
   // Signals for component state
   private readonly _weatherData = signal<WeatherData>({

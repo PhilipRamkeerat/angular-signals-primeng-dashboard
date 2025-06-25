@@ -14,6 +14,8 @@ import { DividerModule } from 'primeng/divider';
 import { ChipModule } from 'primeng/chip';
 
 import { AuthService, LoginCredentials } from '../services/auth.service';
+import { ThemeService } from '../services/theme.service';
+import { ThemeToggleComponent } from '../components/theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-login',
@@ -28,7 +30,8 @@ import { AuthService, LoginCredentials } from '../services/auth.service';
     ToastModule,
     ProgressSpinnerModule,
     DividerModule,
-    ChipModule
+    ChipModule,
+    ThemeToggleComponent
   ],
   templateUrl: './login.component.html',
   providers: [MessageService]
@@ -39,6 +42,7 @@ export class LoginComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
+  public readonly themeService = inject(ThemeService);
 
   // Signals for component state
   private readonly _formTouched = signal<boolean>(false);

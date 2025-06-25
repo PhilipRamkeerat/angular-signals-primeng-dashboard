@@ -1,3 +1,81 @@
+@import 'primeicons/primeicons.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Dark mode transitions */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* PrimeNG Dark Mode Overrides */
+.dark .p-card {
+  background: #1f2937 !important;
+  color: #f9fafb !important;
+  border: 1px solid #374151 !important;
+}
+
+.dark .p-card .p-card-content {
+  color: #f9fafb !important;
+}
+
+.dark .p-inputtext {
+  background: #374151 !important;
+  color: #f9fafb !important;
+  border: 1px solid #4b5563 !important;
+}
+
+.dark .p-inputtext:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2) !important;
+}
+
+.dark .p-password input {
+  background: #374151 !important;
+  color: #f9fafb !important;
+  border: 1px solid #4b5563 !important;
+}
+
+.dark .p-toast .p-toast-message {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+.dark .p-toast .p-toast-message.p-toast-message-success {
+  background: #065f46 !important;
+  border-color: #10b981 !important;
+  color: #d1fae5 !important;
+}
+
+.dark .p-toast .p-toast-message.p-toast-message-error {
+  background: #7f1d1d !important;
+  border-color: #ef4444 !important;
+  color: #fecaca !important;
+}
+
+.dark .p-toast .p-toast-message.p-toast-message-warn {
+  background: #78350f !important;
+  border-color: #f59e0b !important;
+  color: #fef3c7 !important;
+}
+
+.dark .p-toast .p-toast-message.p-toast-message-info {
+  background: #1e3a8a !important;
+  border-color: #3b82f6 !important;
+  color: #dbeafe !important;
+}
+
+/* Smooth transitions for theme switching */
+html {
+  transition: background-color 0.3s ease;
+}
+
+html.dark {
+  background-color: #111827;
+}
+
+html.light {
+  background-color: #ffffff;
+}
