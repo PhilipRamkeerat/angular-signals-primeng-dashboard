@@ -1,5 +1,4 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Injectable, signal, computed } from '@angular/core';
 
 export interface Widget {
   id: string;
@@ -53,8 +52,19 @@ export class WidgetStorageService {
     }
   ];
 
-  private widgetsSubject = new BehaviorSubject<Widget[]>(this.DEFAULT_WIDGETS);
-  public widgets$ = this.widgetsSubject.asObservable();
+  // Signals instead of BehaviorSubjects
+  private readonly _widgets = signal<Widget[]>([...this.DEFAULT_WIDGETS]);
+  private readonly _currentUserId = signal<string>('');
+  private _autoSaveTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  // Public readonly signals
+  public readonly widgets = this._widgets.asReadonly();
+  public readonly currentUserId = this._currentUserId.asReadonly();
+  public readonly hasChanges = computed(() => {
+    const currentWidgets = this._widgets();
+    const storedWidgets = this.getStoredWidgets(this._currentUserId());
+    return JSON.stringify(currentWidgets) !== JSON.stringify(storedWidgets);
+  });
 
   constructor() {
     this.initializeService();
@@ -66,9 +76,117 @@ export class WidgetStorageService {
       console.warn('Local storage is not available. Widget positions will not be persisted.');
       return;
     }
+  }
 
-    // Load existing layout if available
-    this.loadWidgetLayout();
+  /**
+   * Set the current user and load their widget layout
+   */
+  setCurrentUser(userId: string): void {
+    this._currentUserId.set(userId);
+    const userWidgets = this.getWidgetLayout(userId);
+    this._widgets.set([...userWidgets]);
+  }
+
+  /**
+   * Update widgets signal and trigger auto-save
+   */
+  updateWidgets(widgets: Widget[]): void {
+    // Validate widgets before updating
+    const validatedWidgets = this.validateAndFixWidgetPositions(widgets);
+    this._widgets.set([...validatedWidgets]);
+    this.triggerAutoSave();
+  }
+
+  /**
+   * Validate and fix widget positions to prevent conflicts
+   */
+  private validateAndFixWidgetPositions(widgets: Widget[]): Widget[] {
+    const validatedWidgets = [...widgets];
+    const usedPositions = new Set<string>();
+    const availablePositions = [
+      { row: 0, col: 0 },
+      { row: 0, col: 1 },
+      { row: 1, col: 0 },
+      { row: 1, col: 1 }
+    ];
+
+    // First pass: identify and fix duplicate positions
+    for (let i = 0; i < validatedWidgets.length; i++) {
+      const widget = validatedWidgets[i];
+      const positionKey = `${widget.position.row}-${widget.position.col}`;
+      
+      if (usedPositions.has(positionKey)) {
+        // Find an available position for this duplicate
+        const availablePosition = availablePositions.find(pos => {
+          const key = `${pos.row}-${pos.col}`;
+          return !usedPositions.has(key);
+        });
+        
+        if (availablePosition) {
+          console.warn(`Duplicate position detected for widget ${widget.id}. Moving to ${availablePosition.row},${availablePosition.col}`);
+          validatedWidgets[i] = {
+            ...widget,
+            position: { ...availablePosition }
+          };
+          usedPositions.add(`${availablePosition.row}-${availablePosition.col}`);
+        } else {
+          console.error(`No available position found for widget ${widget.id}`);
+        }
+      } else {
+        // Check if position is within valid bounds
+        if (this.isValidPosition(widget.position)) {
+          usedPositions.add(positionKey);
+        } else {
+          // Fix invalid position
+          const fallbackPosition = availablePositions.find(pos => {
+            const key = `${pos.row}-${pos.col}`;
+            return !usedPositions.has(key);
+          });
+          
+          if (fallbackPosition) {
+            console.warn(`Invalid position for widget ${widget.id}. Moving to ${fallbackPosition.row},${fallbackPosition.col}`);
+            validatedWidgets[i] = {
+              ...widget,
+              position: { ...fallbackPosition }
+            };
+            usedPositions.add(`${fallbackPosition.row}-${fallbackPosition.col}`);
+          }
+        }
+      }
+    }
+
+    return validatedWidgets;
+  }
+
+  /**
+   * Check if a position is within valid bounds
+   */
+  private isValidPosition(position: { row: number; col: number }): boolean {
+    return position.row >= 0 && position.row <= 1 && position.col >= 0 && position.col <= 1;
+  }
+
+  /**
+   * Trigger auto-save with debouncing
+   */
+  private triggerAutoSave(): void {
+    const userId = this._currentUserId();
+    if (!userId || !this.isLocalStorageAvailable()) return;
+
+    // Clear existing timeout
+    if (this._autoSaveTimeoutId) {
+      clearTimeout(this._autoSaveTimeoutId);
+    }
+
+    // Set new timeout for auto-save
+    this._autoSaveTimeoutId = setTimeout(() => {
+      const success = this.saveWidgetLayout(userId, this._widgets());
+      if (success) {
+        console.log('Auto-save completed successfully');
+      } else {
+        console.error('Auto-save failed');
+      }
+      this._autoSaveTimeoutId = null;
+    }, 1000);
   }
 
   /**
@@ -83,6 +201,29 @@ export class WidgetStorageService {
     } catch (e) {
       return false;
     }
+  }
+
+  /**
+   * Get stored widgets for comparison
+   */
+  private getStoredWidgets(userId: string): Widget[] {
+    if (!userId || !this.isLocalStorageAvailable()) {
+      return [...this.DEFAULT_WIDGETS];
+    }
+
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (!stored) return [...this.DEFAULT_WIDGETS];
+
+      const layout: WidgetLayout = JSON.parse(stored);
+      if (layout.userId === userId) {
+        return layout.widgets;
+      }
+    } catch (error) {
+      console.error('Error reading stored widgets:', error);
+    }
+
+    return [...this.DEFAULT_WIDGETS];
   }
 
   /**
@@ -143,7 +284,6 @@ export class WidgetStorageService {
       };
 
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(layout));
-      this.widgetsSubject.next([...widgets]);
       
       console.log('Widget layout saved successfully for user:', userId);
       return true;
@@ -157,17 +297,19 @@ export class WidgetStorageService {
    * Reset widget layout to default for a specific user
    */
   resetWidgetLayout(userId: string): Widget[] {
+    const defaultWidgets = [...this.DEFAULT_WIDGETS];
+    
     if (this.isLocalStorageAvailable()) {
       try {
         // Save default layout to localStorage
-        this.saveWidgetLayout(userId, this.DEFAULT_WIDGETS);
+        this.saveWidgetLayout(userId, defaultWidgets);
       } catch (error) {
         console.error('Error resetting widget layout:', error);
       }
     }
     
-    this.widgetsSubject.next([...this.DEFAULT_WIDGETS]);
-    return [...this.DEFAULT_WIDGETS];
+    this._widgets.set(defaultWidgets);
+    return defaultWidgets;
   }
 
   /**
@@ -182,7 +324,7 @@ export class WidgetStorageService {
         console.error('Error clearing widget layouts:', error);
       }
     }
-    this.widgetsSubject.next([...this.DEFAULT_WIDGETS]);
+    this._widgets.set([...this.DEFAULT_WIDGETS]);
   }
 
   /**
@@ -200,6 +342,7 @@ export class WidgetStorageService {
       }
 
       const layout: WidgetLayout = JSON.parse(stored);
+      
       if (layout.userId === userId && this.isValidLayout(layout)) {
         return layout.lastUpdated;
       }
@@ -211,54 +354,29 @@ export class WidgetStorageService {
   }
 
   /**
-   * Load widget layout on service initialization
-   */
-  private loadWidgetLayout(): void {
-    // This will be called when a user logs in
-    // For now, we'll just initialize with default widgets
-    this.widgetsSubject.next([...this.DEFAULT_WIDGETS]);
-  }
-
-  /**
-   * Validate the structure of a widget layout
+   * Validate widget layout structure
    */
   private isValidLayout(layout: any): layout is WidgetLayout {
-    if (!layout || typeof layout !== 'object') {
-      return false;
-    }
-
-    if (
-      typeof layout.userId !== 'string' ||
-      typeof layout.lastUpdated !== 'number' ||
-      typeof layout.version !== 'string' ||
-      !Array.isArray(layout.widgets)
-    ) {
-      return false;
-    }
-
-    // Validate each widget
-    for (const widget of layout.widgets) {
-      if (!this.isValidWidget(widget)) {
-        return false;
-      }
-    }
-
-    return true;
+    return (
+      layout &&
+      typeof layout === 'object' &&
+      typeof layout.userId === 'string' &&
+      Array.isArray(layout.widgets) &&
+      typeof layout.lastUpdated === 'number' &&
+      typeof layout.version === 'string' &&
+      layout.widgets.every((widget: any) => this.isValidWidget(widget))
+    );
   }
 
   /**
-   * Validate the structure of a widget
+   * Validate individual widget structure
    */
   private isValidWidget(widget: any): widget is Widget {
-    if (!widget || typeof widget !== 'object') {
-      return false;
-    }
-
-    const validTypes = ['weather', 'chart', 'tasks', 'stats'];
-    
     return (
+      widget &&
+      typeof widget === 'object' &&
       typeof widget.id === 'string' &&
-      validTypes.includes(widget.type) &&
+      ['weather', 'chart', 'tasks', 'stats'].includes(widget.type) &&
       typeof widget.title === 'string' &&
       widget.position &&
       typeof widget.position.row === 'number' &&

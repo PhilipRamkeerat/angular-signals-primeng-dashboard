@@ -1,61 +1,33 @@
-import { Injectable } from '@angular/core';
-import { CanActivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
-import { Observable } from 'rxjs';
-import { map, take } from 'rxjs/operators';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-@Injectable({
-  providedIn: 'root'
-})
-export class AuthGuard implements CanActivate {
+// Modern functional guard for authenticated routes
+export const authGuard = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
 
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
-
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): Observable<boolean> | Promise<boolean> | boolean {
-    return this.authService.isLoggedIn$.pipe(
-      take(1),
-      map(isLoggedIn => {
-        if (isLoggedIn) {
-          return true;
-        } else {
-          this.router.navigate(['/login']);
-          return false;
-        }
-      })
-    );
+  const isLoggedIn = authService.isLoggedIn();
+  
+  if (isLoggedIn) {
+    return true;
+  } else {
+    router.navigate(['/login']);
+    return false;
   }
-}
+};
 
-@Injectable({
-  providedIn: 'root'
-})
-export class NoAuthGuard implements CanActivate {
+// Modern functional guard for routes that should only be accessible when NOT authenticated
+export const noAuthGuard = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
 
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
-
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): Observable<boolean> | Promise<boolean> | boolean {
-    return this.authService.isLoggedIn$.pipe(
-      take(1),
-      map(isLoggedIn => {
-        if (!isLoggedIn) {
-          return true;
-        } else {
-          this.router.navigate(['/dashboard']);
-          return false;
-        }
-      })
-    );
+  const isLoggedIn = authService.isLoggedIn();
+  
+  if (!isLoggedIn) {
+    return true;
+  } else {
+    router.navigate(['/dashboard']);
+    return false;
   }
-} 
+}; 

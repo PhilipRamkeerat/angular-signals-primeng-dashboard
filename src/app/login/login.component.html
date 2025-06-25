@@ -29,7 +29,7 @@
                   placeholder="Enter your username"
                   class="w-full transition-all duration-200"
                   [class.ng-invalid]="isFieldInvalid('username')"
-                  [class.ng-dirty]="username?.dirty || username?.touched"
+                  [class.ng-dirty]="username()?.dirty || username()?.touched"
                 />
               </span>
               <small 
@@ -54,7 +54,7 @@
                   styleClass="w-full"
                   inputStyleClass="w-full transition-all duration-200"
                   [class.ng-invalid]="isFieldInvalid('password')"
-                  [class.ng-dirty]="password?.dirty || password?.touched"
+                  [class.ng-dirty]="password()?.dirty || password()?.touched"
                 ></p-password>
               </span>
               <small 
@@ -69,8 +69,8 @@
               type="submit"
               label="Sign In"
               icon="pi pi-sign-in"
-              [loading]="isLoading"
-              [disabled]="isLoading"
+              [loading]="isLoading()"
+              [disabled]="isLoading()"
               styleClass="w-full transition-all duration-200 hover:scale-105 mt-8 mb-3"
               size="large"
             ></p-button>
@@ -98,7 +98,7 @@
           </p>
           <div class="grid gap-2">
             <div 
-              *ngFor="let cred of demoCredentials" 
+              *ngFor="let cred of demoCredentials()" 
               class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
               (click)="onDemoLogin(cred.username)"
             >
@@ -117,7 +117,7 @@
     </p-card>
 
     <div 
-      *ngIf="isLoading" 
+      *ngIf="isLoading()" 
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
     >
       <div class="bg-white p-6 rounded-lg shadow-xl flex items-center space-x-4 animate-pulse">

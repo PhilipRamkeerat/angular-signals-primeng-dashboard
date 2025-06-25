@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { Injectable, signal, computed, effect } from '@angular/core';
+import { Observable, of, throwError } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
 
 export interface User {
@@ -22,17 +22,60 @@ export class AuthService {
     { id: 1, username: 'admin', password: 'admin123', email: 'admin@example.com', role: 'Administrator' }
   ];
 
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
+  // Signals instead of BehaviorSubjects
+  private readonly _currentUser = signal<User | null>(null);
+  private readonly _isLoading = signal<boolean>(false);
 
-  private isLoggedInSubject = new BehaviorSubject<boolean>(false);
-  public isLoggedIn$ = this.isLoggedInSubject.asObservable();
+  // Public readonly signals
+  public readonly currentUser = this._currentUser.asReadonly();
+  public readonly isLoading = this._isLoading.asReadonly();
+  public readonly isLoggedIn = computed(() => this._currentUser() !== null);
 
   constructor() {
     this.checkStoredAuth();
+    
+    // Effect to automatically save user to localStorage when it changes
+    effect(() => {
+      const user = this._currentUser();
+      if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('currentUser');
+      }
+    }, { allowSignalWrites: true });
   }
 
-  login(credentials: LoginCredentials): Observable<User> {
+  async login(credentials: LoginCredentials): Promise<User> {
+    this._isLoading.set(true);
+    
+    try {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const user = this.HARDCODED_USERS.find(
+        u => u.username === credentials.username && u.password === credentials.password
+      );
+
+      if (user) {
+        const userProfile: User = {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role
+        };
+
+        this._currentUser.set(userProfile);
+        return userProfile;
+      } else {
+        throw new Error('Invalid username or password');
+      }
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  // Keep RxJS version for backward compatibility if needed
+  loginRx(credentials: LoginCredentials): Observable<User> {
     const user = this.HARDCODED_USERS.find(
       u => u.username === credentials.username && u.password === credentials.password
     );
@@ -48,7 +91,7 @@ export class AuthService {
       return of(userProfile).pipe(
         delay(1000),
         map(user => {
-          this.setCurrentUser(user);
+          this._currentUser.set(user);
           return user;
         })
       );
@@ -58,23 +101,15 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem('currentUser');
-    this.currentUserSubject.next(null);
-    this.isLoggedInSubject.next(false);
+    this._currentUser.set(null);
   }
 
   getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
+    return this._currentUser();
   }
 
   isAuthenticated(): boolean {
-    return this.isLoggedInSubject.value;
-  }
-
-  private setCurrentUser(user: User): void {
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    this.currentUserSubject.next(user);
-    this.isLoggedInSubject.next(true);
+    return this.isLoggedIn();
   }
 
   private checkStoredAuth(): void {
@@ -82,8 +117,7 @@ export class AuthService {
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
-        this.currentUserSubject.next(user);
-        this.isLoggedInSubject.next(true);
+        this._currentUser.set(user);
       } catch (error) {
         localStorage.removeItem('currentUser');
       }

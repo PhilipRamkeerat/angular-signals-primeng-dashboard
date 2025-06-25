@@ -1,7 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, signal, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Subject, takeUntil, combineLatest, debounceTime } from 'rxjs';
 
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -38,48 +37,50 @@ import { QuickStatsWidgetComponent } from '../widgets/quick-stats-widget/quick-s
   styleUrl: './dashboard.component.css',
   providers: [MessageService]
 })
-export class DashboardComponent implements OnInit, OnDestroy {
-  currentUser: User | null = null;
-  widgets: Widget[] = [];
-  draggedWidget: Widget | null = null;
-  dragOverIndex: number = -1;
-  
-  private readonly destroy$ = new Subject<void>();
-  private pendingSave$ = new Subject<void>();
-  
-  constructor(
-    private authService: AuthService,
-    private router: Router,
-    private messageService: MessageService,
-    private widgetStorageService: WidgetStorageService
-  ) {}
+export class DashboardComponent {
+  // Dependency injection using inject()
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly messageService = inject(MessageService);
+  private readonly widgetStorageService = inject(WidgetStorageService);
 
-  ngOnInit(): void {
-    this.loadCurrentUser();
-    this.setupAutoSave();
+  // Signals for component state
+  private readonly _draggedWidget = signal<Widget | null>(null);
+  private readonly _dragOverIndex = signal<number>(-1);
+
+  // Public readonly signals
+  public readonly currentUser = this.authService.currentUser;
+  public readonly widgets = this.widgetStorageService.widgets;
+  public readonly draggedWidget = this._draggedWidget.asReadonly();
+  public readonly dragOverIndex = this._dragOverIndex.asReadonly();
+  public readonly hasChanges = this.widgetStorageService.hasChanges;
+
+  // Computed signals
+  public readonly userInitials = computed(() => {
+    const user = this.currentUser();
+    return user ? this.getInitials(user.username) : '';
+  });
+
+  public readonly storageInfo = computed(() => this.widgetStorageService.getStorageInfo());
+
+  constructor() {
+    // Set up effect for user changes and widget layout loading
+    this.setupUserEffects();
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+  private setupUserEffects(): void {
+    // Effect to handle user changes and load widget layout
+    effect(() => {
+      const user = this.currentUser();
+      if (user) {
+        const userId = String(user.id || user.username);
+        this.widgetStorageService.setCurrentUser(userId);
+        this.showLayoutLoadedMessage(userId);
+      }
+    });
   }
 
-  private loadCurrentUser(): void {
-    this.authService.currentUser$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(user => {
-        this.currentUser = user;
-        if (user) {
-          const userId = String(user.id || user.username);
-          this.loadWidgetLayout(userId);
-        }
-      });
-  }
-
-  private loadWidgetLayout(userId: string): void {
-    const savedLayout = this.widgetStorageService.getWidgetLayout(userId);
-    this.widgets = [...savedLayout];
-    
+  private showLayoutLoadedMessage(userId: string): void {
     const lastUpdated = this.widgetStorageService.getLastUpdated(userId);
     if (lastUpdated) {
       const updateTime = new Date(lastUpdated).toLocaleString();
@@ -93,37 +94,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
           detail: `Your custom widget layout from ${updateTime} has been restored.`,
           life: 3000
         });
-      }, 500); // Small delay to avoid showing too early
+      }, 500);
     }
-  }
-
-  private setupAutoSave(): void {
-    // Auto-save widget positions with debouncing to avoid excessive saves
-    this.pendingSave$
-      .pipe(
-        debounceTime(1000), // Wait 1 second after last change
-        takeUntil(this.destroy$)
-      )
-      .subscribe(() => {
-        this.saveCurrentLayout();
-      });
-  }
-
-  private saveCurrentLayout(): void {
-    if (!this.currentUser) {
-      return;
-    }
-
-    const userId = String(this.currentUser.id || this.currentUser.username);
-    const success = this.widgetStorageService.saveWidgetLayout(userId, this.widgets);
-    
-    if (success) {
-      console.log('Widget layout auto-saved');
-    }
-  }
-
-  private triggerAutoSave(): void {
-    this.pendingSave$.next();
   }
 
   logout(): void {
@@ -144,55 +116,92 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   onDragStart(widget: Widget): void {
-    this.draggedWidget = widget;
+    this._draggedWidget.set(widget);
   }
 
   onDragEnd(): void {
-    this.draggedWidget = null;
-    this.dragOverIndex = -1;
+    this._draggedWidget.set(null);
+    this._dragOverIndex.set(-1);
   }
 
   onDrop(targetIndex: number): void {
-    if (this.draggedWidget) {
-      const draggedIndex = this.widgets.findIndex(w => w.id === this.draggedWidget!.id);
+    const draggedWidget = this._draggedWidget();
+    if (!draggedWidget) {
+      this.onDragEnd();
+      return;
+    }
+
+    // Map target index to position
+    const targetPosition = this.mapIndexToPosition(targetIndex);
+    if (!targetPosition) {
+      this.onDragEnd();
+      return;
+    }
+
+    const currentWidgets = this.widgets();
+    const draggedIndex = currentWidgets.findIndex(w => w.id === draggedWidget.id);
+    
+    // Find the widget at the target position
+    const targetWidget = currentWidgets.find(w => 
+      w.position.row === targetPosition.row && w.position.col === targetPosition.col
+    );
+
+    if (draggedIndex !== -1 && targetWidget && draggedWidget.id !== targetWidget.id) {
+      // Create new array with properly swapped widgets
+      const updatedWidgets = [...currentWidgets];
       
-      if (draggedIndex !== -1 && draggedIndex !== targetIndex) {
-        // Swap widgets positions
-        const targetWidget = this.widgets[targetIndex];
-        const draggedWidgetPos = { ...this.draggedWidget.position };
-        
-        this.draggedWidget.position = { ...targetWidget.position };
-        targetWidget.position = { ...draggedWidgetPos };
-        
-        // Trigger auto-save after position change
-        this.triggerAutoSave();
-        
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Widget Moved',
-          detail: `${this.draggedWidget.title} widget has been repositioned and saved.`
-        });
-      }
+      // Find the index of the target widget
+      const targetWidgetIndex = updatedWidgets.findIndex(w => w.id === targetWidget.id);
+      
+      // Swap the positions between the dragged widget and target widget
+      const tempPosition = { ...draggedWidget.position };
+      updatedWidgets[draggedIndex] = {
+        ...draggedWidget,
+        position: { ...targetWidget.position }
+      };
+      updatedWidgets[targetWidgetIndex] = {
+        ...targetWidget,
+        position: { ...tempPosition }
+      };
+      
+      // Update widgets which will trigger auto-save
+      this.widgetStorageService.updateWidgets(updatedWidgets);
+      
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Widget Moved',
+        detail: `${draggedWidget.title} widget has been repositioned and saved.`
+      });
     }
     
     this.onDragEnd();
   }
 
   onDragEnter(index: number): void {
-    this.dragOverIndex = index;
+    // Only set drag over if we're currently dragging something
+    if (this._draggedWidget()) {
+      this._dragOverIndex.set(index);
+    }
   }
 
   onDragLeave(): void {
-    this.dragOverIndex = -1;
+    // Add small delay to prevent flickering when moving between child elements
+    setTimeout(() => {
+      this._dragOverIndex.set(-1);
+    }, 50);
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.dataTransfer!.dropEffect = 'move';
   }
 
   resetLayout(): void {
-    if (!this.currentUser) {
-      return;
-    }
+    const user = this.currentUser();
+    if (!user) return;
 
-    const userId = String(this.currentUser.id || this.currentUser.username);
-    this.widgets = this.widgetStorageService.resetWidgetLayout(userId);
+    const userId = String(user.id || user.username);
+    const resetWidgets = this.widgetStorageService.resetWidgetLayout(userId);
     
     this.messageService.add({
       severity: 'info',
@@ -202,37 +211,62 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getWidgetByPosition(row: number, col: number): Widget | undefined {
-    return this.widgets.find(w => w.position.row === row && w.position.col === col);
+    return this.widgets().find(w => w.position.row === row && w.position.col === col);
   }
 
-  /**
-   * Get storage information for debugging or user info
-   */
-  getStorageInfo(): { used: number; available: boolean } {
-    return this.widgetStorageService.getStorageInfo();
-  }
-
-  /**
-   * Manual save method (can be triggered by a button if needed)
-   */
   saveLayout(): void {
-    this.saveCurrentLayout();
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Layout Saved',
-      detail: 'Your widget layout has been saved successfully.'
-    });
+    const user = this.currentUser();
+    if (!user) return;
+
+    const userId = String(user.id || user.username);
+    const success = this.widgetStorageService.saveWidgetLayout(userId, this.widgets());
+    
+    if (success) {
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Layout Saved',
+        detail: 'Your widget layout has been saved successfully.'
+      });
+    }
   }
 
-  /**
-   * Clear all saved layouts (for debugging or user data cleanup)
-   */
   clearAllSavedLayouts(): void {
     this.widgetStorageService.clearAllLayouts();
+    
     this.messageService.add({
-      severity: 'warn',
-      summary: 'Layouts Cleared',
+      severity: 'info',
+      summary: 'All Layouts Cleared',
       detail: 'All saved widget layouts have been cleared.'
     });
+  }
+
+  private mapIndexToPosition(index: number): { row: number; col: number } | null {
+    // Map grid indices to row/col positions
+    // Grid layout: 2x2
+    // Index 0: row 0, col 0 (top-left)
+    // Index 1: row 0, col 1 (top-right)
+    // Index 2: row 1, col 0 (bottom-left)
+    // Index 3: row 1, col 1 (bottom-right)
+    switch (index) {
+      case 0:
+        return { row: 0, col: 0 };
+      case 1:
+        return { row: 0, col: 1 };
+      case 2:
+        return { row: 1, col: 0 };
+      case 3:
+        return { row: 1, col: 1 };
+      default:
+        return null;
+    }
+  }
+
+  private mapPositionToIndex(row: number, col: number): number {
+    // Map row/col positions to grid indices
+    if (row === 0 && col === 0) return 0;
+    if (row === 0 && col === 1) return 1;
+    if (row === 1 && col === 0) return 2;
+    if (row === 1 && col === 1) return 3;
+    return -1;
   }
 } 

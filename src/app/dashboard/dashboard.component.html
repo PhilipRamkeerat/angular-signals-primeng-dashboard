@@ -35,11 +35,11 @@
           ></p-button>
           
           <div class="text-right hidden sm:block">
-            <p class="text-sm font-medium text-gray-900">{{ currentUser?.username }}</p>
-            <p class="text-xs text-gray-500">{{ currentUser?.email }}</p>
+            <p class="text-sm font-medium text-gray-900">{{ currentUser()?.username }}</p>
+            <p class="text-xs text-gray-500">{{ currentUser()?.email }}</p>
           </div>
           <p-avatar 
-            [label]="getInitials(currentUser?.username || 'U')" 
+            [label]="userInitials()" 
             styleClass="bg-blue-500 text-white transition-all duration-200 hover:scale-110"
             size="large"
           ></p-avatar>
@@ -62,7 +62,7 @@
     
     <div class="mb-8">
       <h2 class="text-3xl font-bold text-gray-900 mb-2">
-        Welcome back, {{ currentUser?.username }}! 👋
+        Welcome back, {{ currentUser()?.username }}! 👋
       </h2>
       <p class="text-gray-600">
         Drag and drop widgets to customize your dashboard layout. Your changes are automatically saved.
@@ -70,164 +70,188 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 auto-rows-fr">
+      <!-- Top Left - Position (0,0) -->
       <div 
-        class="min-h-[400px] transition-all duration-300 rounded-lg"
-        [class.ring-2]="dragOverIndex === 0"
-        [class.ring-blue-500]="dragOverIndex === 0"
-        [class.ring-opacity-50]="dragOverIndex === 0"
+        class="min-h-[400px] drop-zone"
+        [class.drag-over]="dragOverIndex() === 0"
         pDroppable="widgets"
         (onDrop)="onDrop(0)"
         (onDragEnter)="onDragEnter(0)"
         (onDragLeave)="onDragLeave()"
+        (onDragOver)="$event.preventDefault()"
       >
         <div 
-          *ngIf="getWidgetByPosition(0, 0) as widget"
-          class="h-full cursor-move"
+          *ngIf="getWidgetByPosition(0, 0) as widget; else emptySlot"
+          class="h-full widget-container"
+          [class.being-dragged]="draggedWidget()?.id === widget.id"
           pDraggable="widgets"
           (onDragStart)="onDragStart(widget)"
           (onDragEnd)="onDragEnd()"
+          [attr.data-widget-id]="widget.id"
         >
           <app-weather-widget 
             *ngIf="widget.type === 'weather'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-weather-widget>
           <app-chart-widget 
             *ngIf="widget.type === 'chart'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-chart-widget>
           <app-task-list-widget 
             *ngIf="widget.type === 'tasks'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-task-list-widget>
           <app-quick-stats-widget 
             *ngIf="widget.type === 'stats'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-quick-stats-widget>
         </div>
+        <ng-template #emptySlot>
+          <div class="h-full flex items-center justify-center text-gray-400 empty-slot rounded-lg">
+            <div class="text-center">
+              <i class="pi pi-plus text-2xl mb-2"></i>
+              <p>Drop widget here</p>
+            </div>
+          </div>
+        </ng-template>
       </div>
 
+      <!-- Top Right - Position (0,1) -->
       <div 
-        class="min-h-[400px] transition-all duration-300 rounded-lg"
-        [class.ring-2]="dragOverIndex === 1"
-        [class.ring-blue-500]="dragOverIndex === 1"
-        [class.ring-opacity-50]="dragOverIndex === 1"
+        class="min-h-[400px] drop-zone"
+        [class.drag-over]="dragOverIndex() === 1"
         pDroppable="widgets"
         (onDrop)="onDrop(1)"
         (onDragEnter)="onDragEnter(1)"
         (onDragLeave)="onDragLeave()"
+        (onDragOver)="$event.preventDefault()"
       >
         <div 
-          *ngIf="getWidgetByPosition(0, 1) as widget"
-          class="h-full cursor-move"
+          *ngIf="getWidgetByPosition(0, 1) as widget; else emptySlot"
+          class="h-full widget-container"
+          [class.being-dragged]="draggedWidget()?.id === widget.id"
           pDraggable="widgets"
           (onDragStart)="onDragStart(widget)"
           (onDragEnd)="onDragEnd()"
+          [attr.data-widget-id]="widget.id"
         >
           <app-weather-widget 
             *ngIf="widget.type === 'weather'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-weather-widget>
           <app-chart-widget 
             *ngIf="widget.type === 'chart'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-chart-widget>
           <app-task-list-widget 
             *ngIf="widget.type === 'tasks'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-task-list-widget>
           <app-quick-stats-widget 
             *ngIf="widget.type === 'stats'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-quick-stats-widget>
         </div>
+        <ng-template #emptySlot>
+          <div class="h-full flex items-center justify-center text-gray-400 empty-slot rounded-lg">
+            <div class="text-center">
+              <i class="pi pi-plus text-2xl mb-2"></i>
+              <p>Drop widget here</p>
+            </div>
+          </div>
+        </ng-template>
       </div>
 
+      <!-- Bottom Left - Position (1,0) -->
       <div 
-        class="min-h-[400px] transition-all duration-300 rounded-lg"
-        [class.ring-2]="dragOverIndex === 2"
-        [class.ring-blue-500]="dragOverIndex === 2"
-        [class.ring-opacity-50]="dragOverIndex === 2"
+        class="min-h-[400px] drop-zone"
+        [class.drag-over]="dragOverIndex() === 2"
         pDroppable="widgets"
         (onDrop)="onDrop(2)"
         (onDragEnter)="onDragEnter(2)"
         (onDragLeave)="onDragLeave()"
+        (onDragOver)="$event.preventDefault()"
       >
         <div 
-          *ngIf="getWidgetByPosition(1, 0) as widget"
-          class="h-full cursor-move"
+          *ngIf="getWidgetByPosition(1, 0) as widget; else emptySlot"
+          class="h-full widget-container"
+          [class.being-dragged]="draggedWidget()?.id === widget.id"
           pDraggable="widgets"
           (onDragStart)="onDragStart(widget)"
           (onDragEnd)="onDragEnd()"
+          [attr.data-widget-id]="widget.id"
         >
           <app-weather-widget 
             *ngIf="widget.type === 'weather'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-weather-widget>
           <app-chart-widget 
             *ngIf="widget.type === 'chart'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-chart-widget>
           <app-task-list-widget 
             *ngIf="widget.type === 'tasks'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-task-list-widget>
           <app-quick-stats-widget 
             *ngIf="widget.type === 'stats'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-quick-stats-widget>
         </div>
+        <ng-template #emptySlot>
+          <div class="h-full flex items-center justify-center text-gray-400 empty-slot rounded-lg">
+            <div class="text-center">
+              <i class="pi pi-plus text-2xl mb-2"></i>
+              <p>Drop widget here</p>
+            </div>
+          </div>
+        </ng-template>
       </div>
 
+      <!-- Bottom Right - Position (1,1) -->
       <div 
-        class="min-h-[400px] transition-all duration-300 rounded-lg"
-        [class.ring-2]="dragOverIndex === 3"
-        [class.ring-blue-500]="dragOverIndex === 3"
-        [class.ring-opacity-50]="dragOverIndex === 3"
+        class="min-h-[400px] drop-zone"
+        [class.drag-over]="dragOverIndex() === 3"
         pDroppable="widgets"
         (onDrop)="onDrop(3)"
         (onDragEnter)="onDragEnter(3)"
         (onDragLeave)="onDragLeave()"
+        (onDragOver)="$event.preventDefault()"
       >
         <div 
-          *ngIf="getWidgetByPosition(1, 1) as widget"
-          class="h-full cursor-move"
+          *ngIf="getWidgetByPosition(1, 1) as widget; else emptySlot"
+          class="h-full widget-container"
+          [class.being-dragged]="draggedWidget()?.id === widget.id"
           pDraggable="widgets"
           (onDragStart)="onDragStart(widget)"
           (onDragEnd)="onDragEnd()"
+          [attr.data-widget-id]="widget.id"
         >
           <app-weather-widget 
             *ngIf="widget.type === 'weather'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-weather-widget>
           <app-chart-widget 
             *ngIf="widget.type === 'chart'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-chart-widget>
           <app-task-list-widget 
             *ngIf="widget.type === 'tasks'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-task-list-widget>
           <app-quick-stats-widget 
             *ngIf="widget.type === 'stats'"
-            (dragStart)="onDragStart(widget)"
-            class="block h-full"
+            class="block h-full pointer-events-none"
           ></app-quick-stats-widget>
         </div>
+        <ng-template #emptySlot>
+          <div class="h-full flex items-center justify-center text-gray-400 empty-slot rounded-lg">
+            <div class="text-center">
+              <i class="pi pi-plus text-2xl mb-2"></i>
+              <p>Drop widget here</p>
+            </div>
+          </div>
+        </ng-template>
       </div>
     </div>
 

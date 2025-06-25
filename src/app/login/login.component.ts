@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, signal, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -33,63 +33,68 @@ import { AuthService, LoginCredentials } from '../services/auth.service';
   templateUrl: './login.component.html',
   providers: [MessageService]
 })
-export class LoginComponent implements OnInit {
-  loginForm!: FormGroup;
-  isLoading = false;
-  demoCredentials: { username: string; role: string }[] = [];
+export class LoginComponent {
+  // Dependency injection using inject()
+  private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly messageService = inject(MessageService);
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private messageService: MessageService
-  ) {}
+  // Signals for component state
+  private readonly _formTouched = signal<boolean>(false);
+  public readonly isLoading = this.authService.isLoading;
+  public readonly demoCredentials = signal(this.authService.getDemoCredentials());
 
-  ngOnInit(): void {
-    this.initializeForm();
-    this.loadDemoCredentials();
-  }
+  // Form setup
+  public readonly loginForm: FormGroup;
 
-  private initializeForm(): void {
+  // Computed signals for form validation
+  public readonly isFormValid = computed(() => this.loginForm?.valid ?? false);
+  public readonly username = computed(() => this.loginForm?.get('username'));
+  public readonly password = computed(() => this.loginForm?.get('password'));
+
+  constructor() {
+    // Initialize form
     this.loginForm = this.fb.group({
       username: ['admin', [Validators.required, Validators.minLength(3)]],
       password: ['admin123', [Validators.required, Validators.minLength(6)]]
     });
+
+    // Set up automatic form validation feedback
+    effect(() => {
+      if (this._formTouched()) {
+        this.updateFormValidation();
+      }
+    });
   }
 
-  private loadDemoCredentials(): void {
-    this.demoCredentials = this.authService.getDemoCredentials();
-  }
-
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
+    this._formTouched.set(true);
+    
     if (this.loginForm.valid) {
-      this.isLoading = true;
       const credentials: LoginCredentials = this.loginForm.value;
 
-      this.authService.login(credentials).subscribe({
-        next: (user) => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Login Successful',
-            detail: `Welcome back, ${user.username}!`
-          });
-          
-          setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 1000);
-        },
-        error: (error) => {
-          this.isLoading = false;
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Login Failed',
-            detail: 'Use demo credential: Login: admin | Password: admin123'
-          });
-        },
-        complete: () => {
-          this.isLoading = false;
-        }
-      });
+      try {
+        const user = await this.authService.login(credentials);
+        
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Login Successful',
+          detail: `Welcome back, ${user.username}!`
+        });
+        
+        // Navigate after a short delay
+        setTimeout(() => {
+          this.router.navigate(['/dashboard']);
+        }, 1000);
+        
+      } catch (error) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Login Failed',
+          detail: 'Use demo credential: Login: admin | Password: admin123'
+        });
+      }
     } else {
       this.markFormGroupTouched();
       this.messageService.add({
@@ -98,15 +103,6 @@ export class LoginComponent implements OnInit {
         detail: 'Please fill in all required fields correctly'
       });
     }
-  }
-
-  private markFormGroupTouched(): void {
-    Object.keys(this.loginForm.controls).forEach(key => {
-      const control = this.loginForm.get(key);
-      if (control) {
-        control.markAsTouched();
-      }
-    });
   }
 
   onDemoLogin(username: string): void {
@@ -123,9 +119,6 @@ export class LoginComponent implements OnInit {
       detail: `Click "Sign In" to login as ${username}`
     });
   }
-
-  get username() { return this.loginForm.get('username'); }
-  get password() { return this.loginForm.get('password'); }
 
   isFieldInvalid(fieldName: string): boolean {
     const field = this.loginForm.get(fieldName);
@@ -144,5 +137,18 @@ export class LoginComponent implements OnInit {
       }
     }
     return '';
+  }
+
+  private markFormGroupTouched(): void {
+    Object.keys(this.loginForm.controls).forEach(key => {
+      const control = this.loginForm.get(key);
+      if (control) {
+        control.markAsTouched();
+      }
+    });
+  }
+
+  private updateFormValidation(): void {
+    this.markFormGroupTouched();
   }
 } 
