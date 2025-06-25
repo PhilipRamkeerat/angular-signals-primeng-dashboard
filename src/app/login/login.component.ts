@@ -31,7 +31,6 @@ import { AuthService, LoginCredentials } from '../services/auth.service';
     ChipModule
   ],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.css',
   providers: [MessageService]
 })
 export class LoginComponent implements OnInit {

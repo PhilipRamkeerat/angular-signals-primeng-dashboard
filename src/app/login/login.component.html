@@ -2,7 +2,7 @@
   <p-toast></p-toast>
   
   <div class="w-full max-w-md">
-    <p-card class="shadow-2xl border-0 rounded-2xl overflow-hidden">
+    <p-card class="shadow-2xl border-0 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-3xl">
       <ng-template pTemplate="header">
         <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 text-center">
           <div class="mb-2">
@@ -27,7 +27,7 @@
                   id="username" 
                   formControlName="username"
                   placeholder="Enter your username"
-                  class="w-full"
+                  class="w-full transition-all duration-200"
                   [class.ng-invalid]="isFieldInvalid('username')"
                   [class.ng-dirty]="username?.dirty || username?.touched"
                 />
@@ -52,7 +52,7 @@
                   [toggleMask]="true"
                   [feedback]="false"
                   styleClass="w-full"
-                  inputStyleClass="w-full"
+                  inputStyleClass="w-full transition-all duration-200"
                   [class.ng-invalid]="isFieldInvalid('password')"
                   [class.ng-dirty]="password?.dirty || password?.touched"
                 ></p-password>
@@ -71,7 +71,7 @@
               icon="pi pi-sign-in"
               [loading]="isLoading"
               [disabled]="isLoading"
-              styleClass="w-full"
+              styleClass="w-full transition-all duration-200 hover:scale-105"
               size="large"
             ></p-button>
           </form>
@@ -79,7 +79,7 @@
       </ng-template>
     </p-card>
 
-    <p-card class="mt-6 shadow-lg border-0 rounded-xl">
+    <p-card class="mt-6 shadow-lg border-0 rounded-xl transition-all duration-300 hover:shadow-xl">
       <ng-template pTemplate="header">
         <div class="bg-gray-50 p-4 border-b">
           <div class="flex items-center space-x-2">
@@ -97,7 +97,7 @@
           <div class="grid gap-2">
             <div 
               *ngFor="let cred of demoCredentials" 
-              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
               (click)="onDemoLogin(cred.username)"
             >
               <div class="flex items-center space-x-3">
@@ -107,7 +107,7 @@
                   <div class="text-xs text-gray-500">{{ cred.role }}</div>
                 </div>
               </div>
-              <i class="pi pi-angle-right text-gray-400"></i>
+              <i class="pi pi-angle-right text-gray-400 transition-transform duration-200 group-hover:translate-x-1"></i>
             </div>
           </div>
         </div>
@@ -116,9 +116,9 @@
 
     <div 
       *ngIf="isLoading" 
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
     >
-      <div class="bg-white p-6 rounded-lg shadow-xl flex items-center space-x-4">
+      <div class="bg-white p-6 rounded-lg shadow-xl flex items-center space-x-4 animate-pulse">
         <p-progressSpinner 
           [style]="{'width': '30px', 'height': '30px'}" 
           styleClass="custom-spinner"

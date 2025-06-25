@@ -9,6 +9,7 @@ import { ChipModule } from 'primeng/chip';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { MenubarModule } from 'primeng/menubar';
+import { TooltipModule } from 'primeng/tooltip';
 import { MenuItem } from 'primeng/api';
 
 import { AuthService, User } from '../services/auth.service';
@@ -23,7 +24,8 @@ import { AuthService, User } from '../services/auth.service';
     AvatarModule,
     ChipModule,
     ToastModule,
-    MenubarModule
+    MenubarModule,
+    TooltipModule
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
