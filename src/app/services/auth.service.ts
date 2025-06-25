@@ -19,9 +19,7 @@ export interface LoginCredentials {
 })
 export class AuthService {
   private readonly HARDCODED_USERS = [
-    { id: 1, username: 'admin', password: 'admin123', email: 'admin@example.com', role: 'Administrator' },
-    { id: 2, username: 'user1', password: 'user123', email: 'user1@example.com', role: 'User' },
-    { id: 3, username: 'demo', password: 'demo123', email: 'demo@example.com', role: 'Demo User' }
+    { id: 1, username: 'admin', password: 'admin123', email: 'admin@example.com', role: 'Administrator' }
   ];
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);

@@ -52,8 +52,8 @@ export class LoginComponent implements OnInit {
 
   private initializeForm(): void {
     this.loginForm = this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(3)]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      username: ['admin', [Validators.required, Validators.minLength(3)]],
+      password: ['admin123', [Validators.required, Validators.minLength(6)]]
     });
   }
 
@@ -83,7 +83,7 @@ export class LoginComponent implements OnInit {
           this.messageService.add({
             severity: 'error',
             summary: 'Login Failed',
-            detail: error.message || 'Invalid credentials'
+            detail: 'Use demo credential: Login: admin | Password: admin123'
           });
         },
         complete: () => {
@@ -110,8 +110,7 @@ export class LoginComponent implements OnInit {
   }
 
   onDemoLogin(username: string): void {
-    const demoPassword = username === 'admin' ? 'admin123' : 
-                        username === 'user1' ? 'user123' : 'demo123';
+    const demoPassword = 'admin123';
     
     this.loginForm.patchValue({
       username: username,
