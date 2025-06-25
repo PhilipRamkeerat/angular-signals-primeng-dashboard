@@ -37,34 +37,35 @@ import { ThemeToggleComponent } from '../components/theme-toggle/theme-toggle.co
   providers: [MessageService]
 })
 export class LoginComponent {
-  // Dependency injection using inject()
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   public readonly themeService = inject(ThemeService);
 
-  // Signals for component state
   private readonly _formTouched = signal<boolean>(false);
   public readonly isLoading = this.authService.isLoading;
   public readonly demoCredentials = signal(this.authService.getDemoCredentials());
 
-  // Form setup
   public readonly loginForm: FormGroup;
 
-  // Computed signals for form validation
   public readonly isFormValid = computed(() => this.loginForm?.valid ?? false);
   public readonly username = computed(() => this.loginForm?.get('username'));
   public readonly password = computed(() => this.loginForm?.get('password'));
 
   constructor() {
-    // Initialize form
-    this.loginForm = this.fb.group({
+    this.loginForm = this.createLoginForm();
+    this.setupFormValidationEffect();
+  }
+
+  private createLoginForm(): FormGroup {
+    return this.fb.group({
       username: ['admin', [Validators.required, Validators.minLength(3)]],
       password: ['admin123', [Validators.required, Validators.minLength(6)]]
     });
+  }
 
-    // Set up automatic form validation feedback
+  private setupFormValidationEffect(): void {
     effect(() => {
       if (this._formTouched()) {
         this.updateFormValidation();
@@ -75,38 +76,50 @@ export class LoginComponent {
   async onSubmit(): Promise<void> {
     this._formTouched.set(true);
     
-    if (this.loginForm.valid) {
-      const credentials: LoginCredentials = this.loginForm.value;
-
-      try {
-        const user = await this.authService.login(credentials);
-        
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Login Successful',
-          detail: `Welcome back, ${user.username}!`
-        });
-        
-        // Navigate after a short delay
-        setTimeout(() => {
-          this.router.navigate(['/dashboard']);
-        }, 1000);
-        
-      } catch (error) {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Login Failed',
-          detail: 'Use demo credential: Login: admin | Password: admin123'
-        });
-      }
-    } else {
-      this.markFormGroupTouched();
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Form Invalid',
-        detail: 'Please fill in all required fields correctly'
-      });
+    if (!this.loginForm.valid) {
+      this.handleInvalidForm();
+      return;
     }
+
+    await this.attemptLogin();
+  }
+
+  private handleInvalidForm(): void {
+    this.markFormGroupTouched();
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Form Invalid',  
+      detail: 'Please fill in all required fields correctly'
+    });
+  }
+
+  private async attemptLogin(): Promise<void> {
+    const credentials: LoginCredentials = this.loginForm.value;
+
+    try {
+      const user = await this.authService.login(credentials);
+      this.handleSuccessfulLogin(user);
+    } catch (error) {
+      this.handleLoginError();
+    }
+  }
+
+  private handleSuccessfulLogin(user: any): void {
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Login Successful',
+      detail: `Welcome back, ${user.username}!`
+    });
+    
+    setTimeout(() => this.router.navigate(['/dashboard']), 1000);
+  }
+
+  private handleLoginError(): void {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Login Failed',
+      detail: 'Use demo credential: Login: admin | Password: admin123'
+    });
   }
 
   onDemoLogin(username: string): void {

@@ -41,25 +41,21 @@ import { ThemeToggleComponent } from '../components/theme-toggle/theme-toggle.co
   providers: [MessageService]
 })
 export class DashboardComponent {
-  // Dependency injection using inject()
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   private readonly widgetStorageService = inject(WidgetStorageService);
   public readonly themeService = inject(ThemeService);
 
-  // Signals for component state
   private readonly _draggedWidget = signal<Widget | null>(null);
   private readonly _dragOverIndex = signal<number>(-1);
 
-  // Public readonly signals
   public readonly currentUser = this.authService.currentUser;
   public readonly widgets = this.widgetStorageService.widgets;
   public readonly draggedWidget = this._draggedWidget.asReadonly();
   public readonly dragOverIndex = this._dragOverIndex.asReadonly();
   public readonly hasChanges = this.widgetStorageService.hasChanges;
 
-  // Computed signals
   public readonly userInitials = computed(() => {
     const user = this.currentUser();
     return user ? this.getInitials(user.username) : '';
@@ -68,12 +64,10 @@ export class DashboardComponent {
   public readonly storageInfo = computed(() => this.widgetStorageService.getStorageInfo());
 
   constructor() {
-    // Set up effect for user changes and widget layout loading
     this.setupUserEffects();
   }
 
   private setupUserEffects(): void {
-    // Effect to handle user changes and load widget layout
     effect(() => {
       const user = this.currentUser();
       if (user) {
@@ -86,20 +80,17 @@ export class DashboardComponent {
 
   private showLayoutLoadedMessage(userId: string): void {
     const lastUpdated = this.widgetStorageService.getLastUpdated(userId);
-    if (lastUpdated) {
-      const updateTime = new Date(lastUpdated).toLocaleString();
-      console.log(`Widget layout loaded from ${updateTime}`);
-      
-      // Show notification for loaded custom layout
-      setTimeout(() => {
-        this.messageService.add({
-          severity: 'info',
-          summary: 'Layout Loaded',
-          detail: `Your custom widget layout from ${updateTime} has been restored.`,
-          life: 3000
-        });
-      }, 500);
-    }
+    if (!lastUpdated) return;
+    
+    const updateTime = new Date(lastUpdated).toLocaleString();
+    setTimeout(() => {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Layout Loaded',
+        detail: `Your custom widget layout from ${updateTime} has been restored.`,
+        life: 3000
+      });
+    }, 500);
   }
 
   logout(): void {
@@ -137,64 +128,64 @@ export class DashboardComponent {
       return;
     }
 
-    // Map target index to position
     const targetPosition = this.mapIndexToPosition(targetIndex);
     if (!targetPosition) {
       this.onDragEnd();
       return;
     }
 
-    const currentWidgets = this.widgets();
-    const draggedIndex = currentWidgets.findIndex(w => w.id === draggedWidget.id);
-    
-    // Find the widget at the target position
-    const targetWidget = currentWidgets.find(w => 
-      w.position.row === targetPosition.row && w.position.col === targetPosition.col
-    );
-
-    if (draggedIndex !== -1 && targetWidget && draggedWidget.id !== targetWidget.id) {
-      // Create new array with properly swapped widgets
-      const updatedWidgets = [...currentWidgets];
-      
-      // Find the index of the target widget
-      const targetWidgetIndex = updatedWidgets.findIndex(w => w.id === targetWidget.id);
-      
-      // Swap the positions between the dragged widget and target widget
-      const tempPosition = { ...draggedWidget.position };
-      updatedWidgets[draggedIndex] = {
-        ...draggedWidget,
-        position: { ...targetWidget.position }
-      };
-      updatedWidgets[targetWidgetIndex] = {
-        ...targetWidget,
-        position: { ...tempPosition }
-      };
-      
-      // Update widgets which will trigger auto-save
-      this.widgetStorageService.updateWidgets(updatedWidgets);
-      
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Widget Moved',
-        detail: `${draggedWidget.title} widget has been repositioned and saved.`
-      });
+    const swapResult = this.swapWidgetPositions(draggedWidget, targetPosition);
+    if (swapResult.success) {
+      this.widgetStorageService.updateWidgets(swapResult.widgets);
+      this.showWidgetMovedMessage(draggedWidget.title);
     }
     
     this.onDragEnd();
   }
 
+  private swapWidgetPositions(draggedWidget: Widget, targetPosition: { row: number; col: number }) {
+    const currentWidgets = this.widgets();
+    const draggedIndex = currentWidgets.findIndex(w => w.id === draggedWidget.id);
+    const targetWidget = currentWidgets.find(w => 
+      w.position.row === targetPosition.row && w.position.col === targetPosition.col
+    );
+
+    if (draggedIndex === -1 || !targetWidget || draggedWidget.id === targetWidget.id) {
+      return { success: false, widgets: currentWidgets };
+    }
+
+    const updatedWidgets = [...currentWidgets];
+    const targetWidgetIndex = updatedWidgets.findIndex(w => w.id === targetWidget.id);
+    const tempPosition = { ...draggedWidget.position };
+
+    updatedWidgets[draggedIndex] = {
+      ...draggedWidget,
+      position: { ...targetWidget.position }
+    };
+    updatedWidgets[targetWidgetIndex] = {
+      ...targetWidget,
+      position: { ...tempPosition }
+    };
+
+    return { success: true, widgets: updatedWidgets };
+  }
+
+  private showWidgetMovedMessage(widgetTitle: string): void {
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Widget Moved',
+      detail: `${widgetTitle} widget has been repositioned and saved.`
+    });
+  }
+
   onDragEnter(index: number): void {
-    // Only set drag over if we're currently dragging something
     if (this._draggedWidget()) {
       this._dragOverIndex.set(index);
     }
   }
 
   onDragLeave(): void {
-    // Add small delay to prevent flickering when moving between child elements
-    setTimeout(() => {
-      this._dragOverIndex.set(-1);
-    }, 50);
+    setTimeout(() => this._dragOverIndex.set(-1), 50);
   }
 
   onDragOver(event: DragEvent): void {
@@ -247,32 +238,24 @@ export class DashboardComponent {
   }
 
   private mapIndexToPosition(index: number): { row: number; col: number } | null {
-    // Map grid indices to row/col positions
-    // Grid layout: 2x2
-    // Index 0: row 0, col 0 (top-left)
-    // Index 1: row 0, col 1 (top-right)
-    // Index 2: row 1, col 0 (bottom-left)
-    // Index 3: row 1, col 1 (bottom-right)
-    switch (index) {
-      case 0:
-        return { row: 0, col: 0 };
-      case 1:
-        return { row: 0, col: 1 };
-      case 2:
-        return { row: 1, col: 0 };
-      case 3:
-        return { row: 1, col: 1 };
-      default:
-        return null;
-    }
+    const positions = [
+      { row: 0, col: 0 },
+      { row: 0, col: 1 },
+      { row: 1, col: 0 },
+      { row: 1, col: 1 }
+    ];
+    
+    return positions[index] || null;
   }
 
   private mapPositionToIndex(row: number, col: number): number {
-    // Map row/col positions to grid indices
-    if (row === 0 && col === 0) return 0;
-    if (row === 0 && col === 1) return 1;
-    if (row === 1 && col === 0) return 2;
-    if (row === 1 && col === 1) return 3;
-    return -1;
+    const positionMap = new Map([
+      ['0,0', 0],
+      ['0,1', 1],
+      ['1,0', 2],
+      ['1,1', 3]
+    ]);
+    
+    return positionMap.get(`${row},${col}`) ?? -1;
   }
 } 

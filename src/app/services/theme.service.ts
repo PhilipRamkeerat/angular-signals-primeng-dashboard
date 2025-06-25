@@ -11,62 +11,13 @@ export type ThemeMode = 'light' | 'dark';
 export class ThemeService {
   private readonly document = inject(DOCUMENT);
   private readonly primeng = inject(PrimeNG);
+  private readonly themeStorageKey = 'theme-mode';
   
-  // Signal for current theme mode
   private readonly _themeMode = signal<ThemeMode>(this.getInitialTheme());
-  
-  // Public readonly signal
   public readonly themeMode = this._themeMode.asReadonly();
   
   constructor() {
-    // Effect to apply theme changes
-    effect(() => {
-      this.applyTheme(this._themeMode());
-    });
-  }
-  
-  private getInitialTheme(): ThemeMode {
-    // Check localStorage first
-    const savedTheme = localStorage.getItem('theme-mode');
-    if (savedTheme === 'light' || savedTheme === 'dark') {
-      return savedTheme;
-    }
-    
-    // Check system preference
-    if (this.document.defaultView?.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    
-    return 'light';
-  }
-  
-  private applyTheme(mode: ThemeMode): void {
-    // Apply theme using the new PrimeNG v19 approach
-    this.primeng.theme.set({
-      preset: Lara,
-      options: {
-        darkModeSelector: mode === 'dark' ? '.dark' : false,
-        cssLayer: {
-          name: 'primeng',
-          order: 'tailwind-base, primeng, tailwind-utilities'  
-        }
-      }
-    });
-    
-    // Update document classes
-    const htmlElement = this.document.documentElement;
-    if (mode === 'dark') {
-      htmlElement.classList.add('dark');
-      htmlElement.classList.remove('light');
-    } else {
-      htmlElement.classList.add('light');
-      htmlElement.classList.remove('dark');
-    }
-    
-    // Save to localStorage
-    localStorage.setItem('theme-mode', mode);
-    
-    console.log(`Theme switched to ${mode} mode`);
+    effect(() => this.applyTheme(this._themeMode()));
   }
   
   public toggleTheme(): void {
@@ -84,5 +35,54 @@ export class ThemeService {
   
   public isLightMode(): boolean {
     return this._themeMode() === 'light';
+  }
+  
+  private getInitialTheme(): ThemeMode {
+    const savedTheme = localStorage.getItem(this.themeStorageKey);
+    if (this.isValidThemeMode(savedTheme)) {
+      return savedTheme;
+    }
+    
+    return this.getSystemThemePreference();
+  }
+  
+  private isValidThemeMode(theme: string | null): theme is ThemeMode {
+    return theme === 'light' || theme === 'dark';
+  }
+  
+  private getSystemThemePreference(): ThemeMode {
+    const matchesDark = this.document.defaultView?.matchMedia('(prefers-color-scheme: dark)').matches;
+    return matchesDark ? 'dark' : 'light';
+  }
+  
+  private applyTheme(mode: ThemeMode): void {
+    this.updatePrimeNGTheme(mode);
+    this.updateDocumentClasses(mode);
+    this.saveThemePreference(mode);
+  }
+  
+  private updatePrimeNGTheme(mode: ThemeMode): void {
+    this.primeng.theme.set({
+      preset: Lara,
+      options: {
+        darkModeSelector: mode === 'dark' ? '.dark' : false,
+        cssLayer: {
+          name: 'primeng',
+          order: 'tailwind-base, primeng, tailwind-utilities'  
+        }
+      }
+    });
+  }
+  
+  private updateDocumentClasses(mode: ThemeMode): void {
+    const htmlElement = this.document.documentElement;
+    const isDark = mode === 'dark';
+    
+    htmlElement.classList.toggle('dark', isDark);
+    htmlElement.classList.toggle('light', !isDark);
+  }
+  
+  private saveThemePreference(mode: ThemeMode): void {
+    localStorage.setItem(this.themeStorageKey, mode);
   }
 } 

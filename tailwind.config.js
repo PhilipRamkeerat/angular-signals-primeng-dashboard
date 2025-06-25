@@ -3,11 +3,11 @@ module.exports = {
   content: [
     "./src/**/*.{html,ts}",
   ],
-  darkMode: 'class', // Enable class-based dark mode
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // Custom colors for better dark mode support
+
         dark: {
           50: '#f8fafc',
           100: '#f1f5f9',

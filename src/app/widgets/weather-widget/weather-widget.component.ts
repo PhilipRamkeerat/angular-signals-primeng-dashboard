@@ -99,42 +99,59 @@ export class WeatherWidgetComponent {
   
   public readonly themeService = inject(ThemeService);
 
-  // Signals for component state
-  private readonly _weatherData = signal<WeatherData>({
-    temperature: 22,
-    condition: 'Sunny',
-    location: 'New York, NY',
-    humidity: 65,
-    windSpeed: 12,
-    highTemp: 25,
-    lowTemp: 18,
-    icon: 'pi pi-sun'
-  });
-
+  private readonly _weatherData = signal<WeatherData>(this.getDefaultWeatherData());
   private readonly _isLoading = signal<boolean>(false);
   private readonly _lastUpdateTime = signal<Date>(new Date());
 
-  // Public readonly signals
   public readonly weatherData = this._weatherData.asReadonly();
   public readonly isLoading = this._isLoading.asReadonly();
   
-  // Computed signals
   public readonly lastUpdated = computed(() => {
     const time = this._lastUpdateTime();
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   });
 
   public readonly weatherConditionIcon = computed(() => {
-    const condition = this._weatherData().condition.toLowerCase();
-    if (condition.includes('sunny')) return 'pi pi-sun';
-    if (condition.includes('cloud')) return 'pi pi-cloud';
-    if (condition.includes('rain')) return 'pi pi-cloud-rain';
-    if (condition.includes('snow')) return 'pi pi-snowflake';
-    return 'pi pi-sun';
+    return this.getConditionIcon(this._weatherData().condition);
   });
 
   constructor() {
-    // Effect to update weather icon based on condition
+    this.setupWeatherIconEffect();
+    this.setupAutoRefresh();
+  }
+
+  private getDefaultWeatherData(): WeatherData {
+    return {
+      temperature: 22,
+      condition: 'Sunny',
+      location: 'New York, NY',
+      humidity: 65,
+      windSpeed: 12,
+      highTemp: 25,
+      lowTemp: 18,
+      icon: 'pi pi-sun'
+    };
+  }
+
+  private getConditionIcon(condition: string): string {
+    const lowerCondition = condition.toLowerCase();
+    const iconMap = new Map([
+      ['sunny', 'pi pi-sun'],
+      ['cloud', 'pi pi-cloud'],
+      ['rain', 'pi pi-cloud-rain'],
+      ['snow', 'pi pi-snowflake']
+    ]);
+
+    for (const [key, icon] of iconMap) {
+      if (lowerCondition.includes(key)) {
+        return icon;
+      }
+    }
+    
+    return 'pi pi-sun';
+  }
+
+  private setupWeatherIconEffect(): void {
     effect(() => {
       const currentData = this._weatherData();
       const newIcon = this.weatherConditionIcon();
@@ -146,15 +163,11 @@ export class WeatherWidgetComponent {
         });
       }
     }, { allowSignalWrites: true });
-
-    // Simulate automatic weather updates every 5 minutes
-    this.setupAutoRefresh();
   }
 
   private setupAutoRefresh(): void {
-    setInterval(() => {
-      this.refreshWeather();
-    }, 5 * 60 * 1000); // 5 minutes
+    const fiveMinutes = 5 * 60 * 1000;
+    setInterval(() => this.refreshWeather(), fiveMinutes);
   }
 
   onDragStart(): void {
@@ -165,31 +178,41 @@ export class WeatherWidgetComponent {
     this._isLoading.set(true);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate mock weather data
-      const mockWeatherData: WeatherData = {
-        temperature: Math.floor(Math.random() * 15) + 15, // 15-30°C
-        condition: this.getRandomCondition(),
-        location: 'New York, NY',
-        humidity: Math.floor(Math.random() * 40) + 40, // 40-80%
-        windSpeed: Math.floor(Math.random() * 20) + 5, // 5-25 km/h
-        highTemp: 0,
-        lowTemp: 0,
-        icon: 'pi pi-sun'
-      };
-
-      // Set high/low based on current temp
-      mockWeatherData.highTemp = mockWeatherData.temperature + Math.floor(Math.random() * 5) + 2;
-      mockWeatherData.lowTemp = mockWeatherData.temperature - Math.floor(Math.random() * 8) - 3;
-
-      this._weatherData.set(mockWeatherData);
-      this._lastUpdateTime.set(new Date());
-      
+      await this.simulateApiCall();
+      const mockWeatherData = this.generateMockWeatherData();
+      this.updateWeatherData(mockWeatherData);
     } finally {
       this._isLoading.set(false);
     }
+  }
+
+  private async simulateApiCall(): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  private generateMockWeatherData(): WeatherData {
+    const temperature = this.getRandomInRange(15, 30);
+    const weatherData: WeatherData = {
+      temperature,
+      condition: this.getRandomCondition(),
+      location: 'New York, NY',
+      humidity: this.getRandomInRange(40, 80),
+      windSpeed: this.getRandomInRange(5, 25),
+      highTemp: temperature + this.getRandomInRange(2, 7),
+      lowTemp: temperature - this.getRandomInRange(3, 11),
+      icon: 'pi pi-sun'
+    };
+
+    return weatherData;
+  }
+
+  private updateWeatherData(weatherData: WeatherData): void {
+    this._weatherData.set(weatherData);
+    this._lastUpdateTime.set(new Date());
+  }
+
+  private getRandomInRange(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min)) + min;
   }
 
   private getRandomCondition(): string {
